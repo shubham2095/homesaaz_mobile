@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf \"/c/Users/Atul/.gradle/caches\" \"/c/Users/Atul/.gradle/wrapper/dists\" 2>&1; echo \"gradle cache cleared\"; df -h 2>&1 | grep -E \"^[CD]:\"; echo \"---\"; ls \"/c/Users/Atul/AppData/Local/Android/Sdk/platforms/\" 2>&1)",
+      "Bash(powershell -NoProfile -Command \"Get-Process java,dart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep 2; 'clean'\")",
+      "Bash(flutter build *)",
+      "Bash(flutter pub *)",
+      "Bash(dart run *)",
+      "Bash(awk '/<style>/,/<\\\\/style>/' resources/views/stock/list.blade.php)",
+      "Bash(flutter analyze *)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input tap 84 193)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input tap 220 675)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell screencap -p /sdcard/stk1.png)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp pull /sdcard/stk1.png 'C:\\\\Users\\\\Atul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--project-homesaaz-mobile\\\\857bca28-a197-4055-8267-2d42f9e239e2\\\\scratchpad\\\\stk1.png')",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input tap 540 573)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell screencap -p /sdcard/locdd.png)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp pull /sdcard/locdd.png 'C:\\\\Users\\\\Atul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--project-homesaaz-mobile\\\\857bca28-a197-4055-8267-2d42f9e239e2\\\\scratchpad\\\\locdd.png')",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input tap 540 1289)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input swipe 450 1700 450 400 300)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell screencap -p /sdcard/stk2.png)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp pull /sdcard/stk2.png 'C:\\\\Users\\\\Atul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--project-homesaaz-mobile\\\\857bca28-a197-4055-8267-2d42f9e239e2\\\\scratchpad\\\\stk2.png')",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input tap 310 1890)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell screencap -p /sdcard/stk3.png)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp pull /sdcard/stk3.png 'C:\\\\Users\\\\Atul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--project-homesaaz-mobile\\\\857bca28-a197-4055-8267-2d42f9e239e2\\\\scratchpad\\\\stk3.png')",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input tap 310 1815)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell screencap -p /sdcard/stk5.png)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp pull /sdcard/stk5.png 'C:\\\\Users\\\\Atul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--project-homesaaz-mobile\\\\857bca28-a197-4055-8267-2d42f9e239e2\\\\scratchpad\\\\stk5.png')",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input tap 308 2178)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell screencap -p /sdcard/stk6.png)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp pull /sdcard/stk6.png 'C:\\\\Users\\\\Atul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--project-homesaaz-mobile\\\\857bca28-a197-4055-8267-2d42f9e239e2\\\\scratchpad\\\\stk6.png')",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell input tap 260 1132)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp shell screencap -p /sdcard/grn1.png)",
+      "Bash(MSYS_NO_PATHCONV=1 /c/Users/Atul/AppData/Local/Android/Sdk/platform-tools/adb.exe -s adb-HMWWRCDQTSW8AUSC-6g80zV._adb-tls-connect._tcp pull /sdcard/grn1.png 'C:\\\\Users\\\\Atul\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--project-homesaaz-mobile\\\\857bca28-a197-4055-8267-2d42f9e239e2\\\\scratchpad\\\\grn1.png')",
+      "Bash(mkdir -p \"C:/Users/Atul/AppData/Local/Temp/claude/D--project-homesaaz-mobile/857bca28-a197-4055-8267-2d42f9e239e2/scratchpad/homesaaz_web_new\")",
+      "Bash(unzip -oq \"C:/Users/Atul/Downloads/homeSaaz \\(1\\).zip\")",
+      "Read(//d//**)",
+      "Read(//c/Users/Atul/**)",
+      "Bash(rm -rf \"C:/Users/Atul/AppData/Local/Temp/claude/D--project-homesaaz-mobile/857bca28-a197-4055-8267-2d42f9e239e2/scratchpad/homesaaz_web_latest\")",
+      "Bash(mkdir -p \"C:/Users/Atul/AppData/Local/Temp/claude/D--project-homesaaz-mobile/857bca28-a197-4055-8267-2d42f9e239e2/scratchpad/homesaaz_web_latest\")",
+      "Bash(unzip -oq \"C:/Users/Atul/Downloads/homeSaaz \\(2\\).zip\")"
+    ]
+  }
+}

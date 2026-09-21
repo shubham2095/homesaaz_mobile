@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The production API is served over plain HTTP (http://web.homesaaz.in:84),
+  so cleartext must be allowed for that host even in release builds.
+  Everything else stays HTTPS-only (Android's default).
+  Add more <domain> lines here if the API moves.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">web.homesaaz.in</domain>
+        <domain includeSubdomains="true">homesaaz.in</domain>
+    </domain-config>
+</network-security-config>

@@ -1,0 +1,61 @@
+name: homesaaz_mobile
+description: "HomeSaaz staff Android app."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # networking
+  dio: ^5.7.0
+
+  # secure token storage (Android Keystore)
+  flutter_secure_storage: ^9.2.2
+
+  # state management / DI
+  flutter_riverpod: ^2.6.1
+
+  # navigation + auth gating
+  go_router: ^14.6.2
+
+  # formatting
+  intl: ^0.19.0
+
+  # Inter typeface (matches the web app); cached after first fetch
+  google_fonts: ^6.2.1
+
+  # list images
+  cached_network_image: ^3.4.1
+
+  # open downloaded PDFs
+  open_filex: ^4.5.0
+  path_provider: ^2.1.5
+
+  # camera / gallery picker for Item Stock image upload
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#DC3545"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  min_sdk_android: 21
