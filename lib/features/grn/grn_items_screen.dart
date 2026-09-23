@@ -16,6 +16,7 @@ import '../../widgets/hs_drawer.dart';
 import '../../widgets/hs_table.dart';
 import '../../widgets/hs_widgets.dart';
 import '../../widgets/states.dart';
+import 'grn_item_stock_dialog.dart';
 import 'grn_repository.dart';
 
 /// Column order mirrors web `grn/Detail.blade.php`'s `<thead>` — Item Image
@@ -231,6 +232,7 @@ class _GrnItemsScreenState extends ConsumerState<GrnItemsScreen> {
 
   Widget _itemRow(Map<String, dynamic> item) {
     final img = _grnItemImageUrl('${item['ItemCode'] ?? ''}');
+    final code = '${item['ItemCode'] ?? ''}'.trim();
     return HsTableRow(
       columns: _columns,
       group: _hScroll,
@@ -269,8 +271,16 @@ class _GrnItemsScreenState extends ConsumerState<GrnItemsScreen> {
         ),
       ),
       cells: [
-        Text(orDash(item['ItemCode']),
-            style: const TextStyle(color: Hs.blue, fontWeight: FontWeight.w700)),
+        InkWell(
+          onTap: code.isEmpty
+              ? null
+              : () => showGrnItemStockDialog(context, item, imageUrl: img),
+          child: Text(orDash(item['ItemCode']),
+              style: const TextStyle(
+                  color: Hs.blue,
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.underline)),
+        ),
         Text(orDash(item['CompanyName'])),
         Text(orDash(item['ItemName'])),
         Text(orDash(item['DesignName'])),

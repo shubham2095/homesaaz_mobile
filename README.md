@@ -1,17 +1,154 @@
-# homesaaz_mobile
+# HomeSaaz Mobile
 
-A new Flutter project.
+Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, documents, and home stay records. It connects to an external Laravel API; backend source code is not included here.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+| Module | Available functionality |
+| --- | --- |
+| Authentication | Login, cached profile, secure token storage, logout, authenticated navigation |
+| All Stock Details | Search, filters, paginated tables, item details, images |
+| Item Stock | Item lookup, branch stock distribution, image upload, MRP and discount updates, PDF download |
+| Gate Entry | Warehouse and date filters, paginated entries |
+| GRN | Filtered lists, item details and popup, PDF download |
+| Upload Gate Entry Bill | Create, edit, view, approve, reject, and delete bills |
+| Documents | Filtered lists, details, PDF download |
+| Home Stay | Pending rent, student details, bed occupancy, new admission records |
+| Locations | List, create, edit, and delete locations |
+| Users | User management and field permissions; navigation is shown to admins |
 
-A few resources to get you started if this is your first Flutter project:
+Attendance, Pearl Stay, Daily Collection, and Floor Wise Sales are dashboard placeholders showing **Coming soon**. Only the Android platform project is included. The app uses a light theme.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Requirements
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Flutter SDK with Dart compatible with `^3.12.2`, as specified in `pubspec.yaml`.
+- Android SDK and a compatible Java 17 environment for Android builds.
+- Android emulator or physical Android device.
+- Access to the HomeSaaz API and a valid staff account.
+
+## Getting started
+
+Run from the repository root:
+
+```sh
+flutter doctor
+flutter pub get
+flutter devices
+flutter run
+```
+
+Use `flutter run -d <device-id>` when multiple devices are available.
+
+## API configuration
+
+The base URL is defined in `lib/core/config.dart`. Override it at run or build time with `API_BASE_URL`. Include the API prefix; repository endpoints append paths such as `/auth/login` and `/stock/datatable`.
+
+Current default:
+
+```text
+http://web.homesaaz.in:84/api
+```
+
+To use an HTTPS backend, replace the example hostname with your deployed API host:
+
+```sh
+flutter run --dart-define=API_BASE_URL=https://your-api-host.example/api
+```
+
+For local development, the Android emulator reaches the host computer at `10.0.2.2`. A physical device needs the computer's reachable LAN address:
+
+```sh
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api
+flutter run --dart-define=API_BASE_URL=http://192.168.1.5:8000/api
+```
+
+**Local HTTP configuration:** the checked-in Android network security configuration permits cleartext traffic only for HomeSaaz domains. Local HTTP addresses also need an appropriate development-only network security configuration; changing the Dart define alone does not permit them. See `android/app/src/main/res/xml/network_security_config.xml`.
+
+GRN item images use a separate HTTP image service on port `85`, derived from the API hostname. Changing the API host may also require updating the image URL logic in `lib/features/grn/grn_items_screen.dart`.
+
+## Project structure
+
+```text
+lib/
+  main.dart          Entry point and Riverpod ProviderScope
+  app/               App shell, routes, theme, design tokens
+  core/              API client, auth storage, providers, formatting, pagination
+  features/          Feature screens, forms, and repositories
+  widgets/           Shared tables, dialogs, navigation, and list states
+android/             Android manifests, resources, and Gradle configuration
+assets/
+  images/            Branding and dashboard images
+  icon/              Launcher icon source images
+test/                Flutter tests
+```
+
+`build/` and `.dart_tool/` contain generated output and are ignored by Git. Editor settings and machine-specific configuration are also ignored.
+
+## Architecture
+
+- **State and dependencies:** Riverpod providers expose authentication, the API client, repositories, and cached detail requests. Screens also maintain local form and filter state.
+- **Navigation:** GoRouter redirects unauthenticated users to login and shows a splash screen while the stored session loads.
+- **Networking:** `ApiClient` wraps Dio, injects bearer tokens, normalizes API errors, and supports JSON, multipart uploads, and binary downloads.
+- **Authentication storage:** `AuthStore` uses `flutter_secure_storage` for the token and cached profile, with an in-memory token cache.
+- **Pagination:** shared parsing supports DataTables and conventional paginated responses. `PagedListView` provides debounced search, refresh, and infinite scrolling.
+- **Presentation:** shared theme tokens and `Hs` widgets provide tables, panels, navigation, dialogs, and feedback states.
+- **Files and images:** image picking and caching support stock and bill workflows. PDFs are written to temporary storage and opened with an external viewer.
+
+The API must enforce authorization. Hiding admin navigation does not replace server-side permission checks.
+
+## Development checks
+
+```sh
+flutter analyze
+flutter test
+```
+
+After installing dependencies, add `--no-pub` to skip dependency resolution:
+
+```sh
+flutter analyze --no-pub
+flutter test --no-pub
+```
+
+### Last verified status
+
+During the directory review on September 23, 2026:
+
+- `flutter analyze --no-pub` passed with no issues.
+- `flutter test --no-pub` failed in the sole test, `test/widget_test.dart`. It expects the `LOGIN` submit button before opening the initially hidden login form. The test needs to open the form before asserting that button is present.
+- Live API behavior, device UI, and a release build were not validated.
+
+## Android release build
+
+Configure production signing in `android/app/build.gradle.kts` before distribution. The checked-in release build currently uses debug signing.
+
+Use a deployed HTTPS API for production. The HTTP default transmits credentials and bearer tokens without transport encryption; update the API and image service configuration as part of release preparation.
+
+```sh
+flutter build apk --release --dart-define=API_BASE_URL=https://your-api-host.example/api
+flutter build appbundle --release --dart-define=API_BASE_URL=https://your-api-host.example/api
+```
+
+Standard output locations:
+
+- APK: `build/app/outputs/flutter-apk/app-release.apk`
+- App bundle: `build/app/outputs/bundle/release/app-release.aab`
+
+The app version and build number are set in `pubspec.yaml` as `version: 1.0.0+1`.
+
+After changing launcher icon sources in `assets/icon/`, regenerate them with:
+
+```sh
+ dart run flutter_launcher_icons
+```
+
+## Known follow-up work
+
+- Clear or scope cached detail providers when accounts change.
+- Guard paginated searches and refreshes against stale responses from overlapping requests.
+- Show retryable pagination and stock filter errors.
+- Check widget lifecycle before updating dismissed forms or screens after asynchronous operations.
+- Add a role guard for the users route alongside backend authorization.
+- Expand tests to cover authentication, pagination, API parsing, and important write workflows.
+
+Android Gradle configuration disables Kotlin incremental compilation to avoid cross-drive path issues when the project and dependency cache are on different Windows drives.
