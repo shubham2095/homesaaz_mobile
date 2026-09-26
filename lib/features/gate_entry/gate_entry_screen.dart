@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/tokens.dart';
@@ -17,16 +18,17 @@ import '../../widgets/paged_list_view.dart';
 import '../../widgets/states.dart';
 import 'gate_entry_repository.dart';
 
-/// Column order mirrors web `gateEntry/list.blade.php`'s `<thead>` — Floor
-/// Name is the pinned leading column, the rest scroll horizontally.
+/// Column order mirrors web `gateEntry/list.blade.php`'s dynamic table
+/// (`dbo.ProcWHGoodsDetails`) — Floor Name is the pinned leading column,
+/// the rest scroll horizontally. "Details" (the GRN id link) sits right
+/// after Entry No, matching the web's own `moveDetailsAfterEntryNo()`.
 const _columns = <HsTableColumn>[
-  HsTableColumn('GRN Date', width: 100),
-  HsTableColumn('GRN No', width: 80),
-  HsTableColumn('Billing', width: 90),
-  HsTableColumn('Supplier', width: 240),
-  HsTableColumn('GRN Amount', width: 100, alignEnd: true),
-  HsTableColumn('Bill Amount', width: 100, alignEnd: true),
-  HsTableColumn('Total MRP', width: 100, alignEnd: true),
+  HsTableColumn('Entry No', width: 90),
+  HsTableColumn('Details', width: 70),
+  HsTableColumn('Entry Date', width: 100),
+  HsTableColumn('Acc Name', width: 180),
+  HsTableColumn('Company Name', width: 160),
+  HsTableColumn('Goods Qty', width: 90, alignEnd: true),
 ];
 
 class GateEntryScreen extends ConsumerStatefulWidget {
@@ -74,12 +76,12 @@ class _GateEntryScreenState extends ConsumerState<GateEntryScreen>
   Future<PagedResponse<Map<String, dynamic>>> _fetch(
       int page, String search) {
     return ref.read(gateEntryRepositoryProvider).list(
-          page,
-          _search,
-          locationId: _appliedLocationId,
-          dateFrom: _appliedFrom == null ? null : _apiFmt.format(_appliedFrom!),
-          dateTo: _appliedTo == null ? null : _apiFmt.format(_appliedTo!),
-        );
+      page,
+      _search,
+      locationId: _appliedLocationId,
+      dateFrom: _appliedFrom == null ? null : _apiFmt.format(_appliedFrom!),
+      dateTo: _appliedTo == null ? null : _apiFmt.format(_appliedTo!),
+    );
   }
 
   void _apply() {
@@ -124,11 +126,10 @@ class _GateEntryScreenState extends ConsumerState<GateEntryScreen>
     final canQuery = _appliedLocationId != null;
     final signature = '$_appliedLocationId|$_appliedFrom|$_appliedTo';
 
-    // Web's own column-name auto-detection means the live server can be
-    // serving this from either a direct-SQL fast path or a stored-procedure
-    // fallback, which don't necessarily agree on exact casing — so every
-    // field is looked up under every plausible alias the backend is known
-    // to use (see GateEntry::getFastPaginatedData's own `$pick()` calls).
+    // The stored procedure's columns aren't aliased server-side at all, and
+    // one column even changes name per location (`GrnID` vs `gmID` for the
+    // GRN id) — every field is looked up by normalised key match so any
+    // casing the procedure actually returns still lands correctly.
     Widget listBody() {
       return Column(
         children: [
@@ -141,23 +142,23 @@ class _GateEntryScreenState extends ConsumerState<GateEntryScreen>
               fetchPage: _fetch,
               onPageLoaded: trackPage,
               header: Column(
-          children: [
-            _filterPanel(locations),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-              child: TextField(
-                controller: _searchCtrl,
-                onChanged: _onSearchChanged,
-                textInputAction: TextInputAction.search,
-                style: const TextStyle(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'GRN no, supplier, floor…',
-                  prefixIcon: const Icon(Icons.search, size: 20, color: Hs.muted),
-                  prefixIconConstraints:
-                      const BoxConstraints(minWidth: 42, minHeight: 42),
-                  suffixIcon: _searchCtrl.text.isEmpty
-                      ? null
-                      : IconButton(
+                children: [
+                  _filterPanel(locations),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                    child: TextField(
+                      controller: _searchCtrl,
+                      onChanged: _onSearchChanged,
+                      textInputAction: TextInputAction.search,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'GRN no, supplier, floor…',
+                        prefixIcon: const Icon(Icons.search, size: 20, color: Hs.muted),
+                        prefixIconConstraints:
+                        const BoxConstraints(minWidth: 42, minHeight: 42),
+                        suffixIcon: _searchCtrl.text.isEmpty
+                            ? null
+                            : IconButton(
                           icon: const Icon(Icons.close, size: 18),
                           splashRadius: 18,
                           onPressed: () {
@@ -165,52 +166,58 @@ class _GateEntryScreenState extends ConsumerState<GateEntryScreen>
                             _onSearchChanged('');
                           },
                         ),
-                ),
+                      ),
+                    ),
+                  ),
+                  HsTableHeader(
+                    columns: _columns,
+                    group: _hScroll,
+                    leadingWidth: 110,
+                    leadingLabel: 'Floor Name',
+                  ),
+                ],
               ),
+              itemBuilder: (context, m) {
+                final grnIdRaw = findByNormalizedKey(m, const ['GrnID', 'gmID']);
+                final grnId = asInt(grnIdRaw);
+                return HsTableRow(
+                  columns: _columns,
+                  group: _hScroll,
+                  leadingWidth: 110,
+                  leading: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      orDash(findByNormalizedKey(m, const ['FloorName'])),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, color: Hs.ink, fontSize: 13),
+                    ),
+                  ),
+                  cells: [
+                    Text(orDash(findByNormalizedKey(m, const ['EntryNo']))),
+                    (grnId == null || grnId == 0)
+                        ? const Text('-')
+                        : InkWell(
+                            onTap: () => _openDetails(context, grnId, m),
+                            child: const Text(
+                              'Details',
+                              style: TextStyle(
+                                  color: Hs.blue,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12.5,
+                                  decoration: TextDecoration.underline),
+                            ),
+                          ),
+                    Text(prettyDate(findByNormalizedKey(m, const ['EntryDate']))),
+                    Text(orDash(findByNormalizedKey(m, const ['AccName']))),
+                    Text(orDash(findByNormalizedKey(m, const ['CompanyName']))),
+                    Text((asNum(findByNormalizedKey(m, const ['GoodsQty'])) ?? 0)
+                        .toStringAsFixed(2)),
+                  ],
+                );
+              },
             ),
-            HsTableHeader(
-              columns: _columns,
-              group: _hScroll,
-              leadingWidth: 110,
-              leadingLabel: 'Floor Name',
-            ),
-          ],
-        ),
-        itemBuilder: (context, m) => HsTableRow(
-          columns: _columns,
-          group: _hScroll,
-          leadingWidth: 110,
-          leading: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              orDash(_pick(m, const ['FloorName', 'Floor', 'FloorDescription'])),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w700, color: Hs.ink, fontSize: 13),
-            ),
-          ),
-          cells: [
-            Text(prettyDate(
-                _pick(m, const ['GrnDate', 'GRNDate', 'EntryDate', 'Date']))),
-            Text(orDash(
-                _pick(m, const ['GmNo', 'GRNNo', 'GrnNo', 'EntryNo', 'GMNo']))),
-            Text(orDash(_pick(m, const ['Billing', 'BillNo', 'Billno']))),
-            Text(orDash(
-                _pick(m, const ['Supplier', 'SupplierName', 'AccName']))),
-            Text(money(_pick(m, const [
-              'GmAmount',
-              'GrnAmount',
-              'GRNAmount',
-              'GmAmt',
-              'Amount',
-            ]))),
-            Text(money(_pick(m, const ['BillAmount', 'BillAmt']))),
-            Text(money(_pick(
-                m, const ['TotMRP', 'TotalMRP', 'TotMrp', 'TotalMrp']))),
-          ],
-        ),
-      ),
           ),
           if (footerTotal > 0) footerBar(),
         ],
@@ -222,26 +229,26 @@ class _GateEntryScreenState extends ConsumerState<GateEntryScreen>
       appBar: const HsAppBar(title: 'Gate Entry Details'),
       body: !canQuery
           ? Column(
-              children: [
-                _filterPanel(locations),
-                const Expanded(
-                  child: EmptyView(
-                      message:
-                          'Please select Location to load Gate Entry details.'),
-                ),
-              ],
-            )
+        children: [
+          _filterPanel(locations),
+          const Expanded(
+            child: EmptyView(
+                message:
+                'Please select Location to load Gate Entry details.'),
+          ),
+        ],
+      )
           : listBody(),
     );
   }
 
-  /// Returns the first non-empty value found under any of [keys].
-  static String? _pick(Map<String, dynamic> m, List<String> keys) {
-    for (final k in keys) {
-      final v = m[k];
-      if (v != null && '$v'.trim().isNotEmpty) return '$v';
-    }
-    return null;
+  void _openDetails(BuildContext context, int grnId, Map<String, dynamic> row) {
+    context.push(
+      '/gate-entry/$grnId?loc=$_appliedLocationId'
+      '${_appliedFrom == null ? '' : '&from=${_apiFmt.format(_appliedFrom!)}'}'
+      '${_appliedTo == null ? '' : '&to=${_apiFmt.format(_appliedTo!)}'}',
+      extra: row,
+    );
   }
 
   Widget _filterPanel(AsyncValue<Map<int, GateEntryLocation>> locations) {
@@ -274,7 +281,7 @@ class _GateEntryScreenState extends ConsumerState<GateEntryScreen>
             children: [
               Expanded(
                   child: _dateField('From Date', _fromDate,
-                      () => _pickDate(isFrom: true))),
+                          () => _pickDate(isFrom: true))),
               const SizedBox(width: 10),
               Expanded(
                   child: _dateField(

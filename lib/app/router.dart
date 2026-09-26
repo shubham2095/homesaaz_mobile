@@ -9,6 +9,7 @@ import '../features/bed_occupancy/bed_occupancy_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/documents/document_detail_screen.dart';
 import '../features/documents/document_list_screen.dart';
+import '../features/gate_entry/gate_entry_details_screen.dart';
 import '../features/gate_entry/gate_entry_screen.dart';
 import '../features/grn/grn_items_screen.dart';
 import '../features/grn/grn_list_screen.dart';
@@ -86,6 +87,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/new-students', builder: (_, __) => const NewStudentListScreen()),
 
       GoRoute(path: '/gate-entry', builder: (_, __) => const GateEntryScreen()),
+      GoRoute(
+        path: '/gate-entry/:id',
+        builder: (_, s) => GateEntryDetailsScreen(
+          grnId: int.parse(s.pathParameters['id']!),
+          locationId: int.tryParse(s.uri.queryParameters['loc'] ?? '') ?? 0,
+          dateFrom: s.uri.queryParameters['from'],
+          dateTo: s.uri.queryParameters['to'],
+          header: s.extra is Map<String, dynamic>
+              ? s.extra as Map<String, dynamic>
+              : null,
+        ),
+      ),
 
       GoRoute(path: '/grn', builder: (_, __) => const GrnListScreen()),
       GoRoute(

@@ -15,8 +15,8 @@ import '../../widgets/hs_app_bar.dart';
 import '../../widgets/hs_drawer.dart';
 import '../../widgets/hs_table.dart';
 import '../../widgets/hs_widgets.dart';
+import '../../widgets/item_fields_dialog.dart';
 import '../../widgets/states.dart';
-import 'grn_item_stock_dialog.dart';
 import 'grn_repository.dart';
 
 /// Column order mirrors web `grn/Detail.blade.php`'s `<thead>` — Item Image
@@ -272,9 +272,7 @@ class _GrnItemsScreenState extends ConsumerState<GrnItemsScreen> {
       ),
       cells: [
         InkWell(
-          onTap: code.isEmpty
-              ? null
-              : () => showGrnItemStockDialog(context, item, imageUrl: img),
+          onTap: code.isEmpty ? null : () => _showItemDialog(item, code, img),
           child: Text(orDash(item['ItemCode']),
               style: const TextStyle(
                   color: Hs.blue,
@@ -294,6 +292,38 @@ class _GrnItemsScreenState extends ConsumerState<GrnItemsScreen> {
         Text(money(item['Amount'])),
         Text(orDash(item['TaxRate'] ?? item['GST'])),
         Text(orDash(item['SupplierName'])),
+      ],
+    );
+  }
+
+  void _showItemDialog(Map<String, dynamic> item, String code, String? img) {
+    showItemFieldsDialog(
+      context,
+      code: code,
+      name: orDash(item['ItemName']),
+      imageUrl: img,
+      sections: [
+        ItemFieldSection('Product Details', Icons.inventory_2_outlined, [
+          ItemField('Company', orDash(item['CompanyName'])),
+          ItemField('Design Name', orDash(item['DesignName'])),
+          ItemField('Color', orDash(item['Color'])),
+          ItemField('Size', orDash(item['Size'])),
+          ItemField('Sr No', orDash(item['SrNo'] ?? item['SrlNo'])),
+          ItemField('Unit', orDash(item['Unit'])),
+          ItemField('Quality', orDash(item['QualityName'] ?? item['Quality'])),
+        ]),
+        ItemFieldSection('Pricing & Quantity', Icons.payments_outlined, [
+          ItemField('Quantity', orDash(item['Qty']),
+              valueWidget: itemFieldChip(orDash(item['Qty']), Hs.red)),
+          ItemField('Cost Price', money(item['CostPrice'])),
+          ItemField('Amount', money(item['Amount']),
+              valueWidget: itemFieldChip(money(item['Amount']), Hs.green)),
+          ItemField('Tax Rate', orDash(item['TaxRate'] ?? item['GST'])),
+        ]),
+        if ('${item['SupplierName'] ?? ''}'.trim().isNotEmpty)
+          ItemFieldSection('Supplier', Icons.local_shipping_outlined, [
+            ItemField('Supplier Name', orDash(item['SupplierName'])),
+          ]),
       ],
     );
   }
