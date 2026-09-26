@@ -6,19 +6,30 @@ Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, 
 
 | Module | Available functionality |
 | --- | --- |
-| Authentication | Login, cached profile, secure token storage, logout, authenticated navigation |
+| Authentication | Login, cached profile and profile photo, secure token storage, logout, authenticated navigation |
+| Dashboard | Tiles for the modules granted to the signed-in user (admins see all) |
 | All Stock Details | Search, filters, paginated tables, item details, images |
-| Item Stock | Item lookup, branch stock distribution, image upload, MRP and discount updates, PDF download |
-| Gate Entry | Warehouse and date filters, paginated entries |
+| Item Stock | Item lookup, branch stock distribution, image upload, MRP and discount updates, PDF download; fields shown follow the user's Field Access |
+| Gate Entry | Warehouse and date filters, newest-first list loaded month by month, entry details with totals and PDF download |
 | GRN | Filtered lists, item details and popup, PDF download |
 | Upload Gate Entry Bill | Create, edit, view, approve, reject, and delete bills |
 | Documents | Filtered lists, details, PDF download |
 | Home Stay | Pending rent, student details, bed occupancy, new admission records |
 | Daily Collection | Location-wise cash, credit card and cheque totals with search and grand total |
 | Locations | List, create, edit, and delete locations |
-| Users | User management and field permissions; navigation is shown to admins |
+| Users | User management with profile photo and access control (modules, per-module fields, locations); navigation is shown to admins |
 
 Attendance, Pearl Stay, and Floor Wise Sales are dashboard placeholders showing **Coming soon**. Only the Android platform project is included. The app uses a light theme.
+
+### User access
+
+Admins grant each non-admin user three kinds of access on the User form:
+
+- **Module Access:** which dashboard modules the user can open. Dashboard tiles and drawer links show only these.
+- **Field Access:** per-module fields (currently Item Stock: supplier name/mobile, contact person, markup, markdown, discount, DP exclusive, MRP, image upload). Unticked fields and their Save buttons are hidden.
+- **Location Access:** the locations whose data the user sees. Location dropdowns (Gate Entry, GRN, All Stock), the Locations list and stock detail rows show only these.
+
+Admins always have full access and their grants are never overwritten from the app. The backend enforces module and location access itself (it answers `403` for anything not granted); the app only decides what to show. Because the API has no "my locations" endpoint, the app finds a user's allowed locations once after login by probing each location and treating `403` as not allowed (`lib/features/access/access_provider.dart`). If the backend adds `access.locations` to `GET /dashboard`, that is used instead.
 
 ## Requirements
 
@@ -88,6 +99,7 @@ test/                Flutter tests
 ## Architecture
 
 - **State and dependencies:** Riverpod providers expose authentication, the API client, repositories, and cached detail requests. Screens also maintain local form and filter state.
+- **Access control:** `userAccessProvider` (`lib/features/access/`) loads the user's modules and locations after login; screens read it to filter tiles, links and dropdowns.
 - **Navigation:** GoRouter redirects unauthenticated users to login and shows a splash screen while the stored session loads.
 - **Networking:** `ApiClient` wraps Dio, injects bearer tokens, normalizes API errors, and supports JSON, multipart uploads, and binary downloads.
 - **Authentication storage:** `AuthStore` uses `flutter_secure_storage` for the token and cached profile, with an in-memory token cache.
@@ -150,6 +162,9 @@ After changing launcher icon sources in `assets/icon/`, regenerate them with:
 - Show retryable pagination and stock filter errors.
 - Check widget lifecycle before updating dismissed forms or screens after asynchronous operations.
 - Add a role guard for the users route alongside backend authorization.
+- Home Stay and Document Download rows are not location-filtered (the backend does not filter them either).
+- Gate Entry without a From date loads only the last 6 months (`_defaultMonthsBack` in `gate_entry_repository.dart`).
+- `lib/features/users/field_permissions_screen.dart` (old DB-table field permissions editor) is no longer used by the User form.
 - Expand tests to cover authentication, pagination, API parsing, and important write workflows.
 
 Android Gradle configuration disables Kotlin incremental compilation to avoid cross-drive path issues when the project and dependency cache are on different Windows drives.

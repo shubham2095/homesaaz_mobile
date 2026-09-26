@@ -1,6 +1,6 @@
 # HomeSaaz backend ZIP review
 
-Review date: 2026-09-23. Source: the user-provided `homeSaaz.zip`.
+Review date: 2026-09-23 (updated 2026-09-26 with the user-access review below). Source: the user-provided `homeSaaz.zip`.
 
 ## Scope and validation
 
@@ -86,16 +86,33 @@ The directory is named `Controllers/Api`, while namespaces/imports use `Controll
 
 Migrations create starter tables such as `users` and `locations`, but application models use legacy business tables such as `Online_Tbl_Users` and `Location`. No application-owned Sanctum token migration appears in the migrations folder; a vendor migration exists. A fresh setup needs a documented schema and migration baseline.
 
+### 9. Medium: several write endpoints have no role check
+
+Beyond the approve/reject gap in finding 2, these authenticated-only routes perform destructive or configuration writes without an admin or permission check in the controller: `DELETE /documentdownload/{id}`, `POST /locations/save`, and `DELETE /locations/{id}`. Only the `/users/*` routes are behind the `admin` middleware. Item Stock writes (`update-mrp`, `update-discount`, `upload-image`) are different: they do check the user's field access.
+
+Action: apply an admin or module-permission rule to these routes, and return the same JSON 403 used elsewhere.
+
+### 10. Medium: user access model has gaps for API clients
+
+The access system (`app/Services/UserAccessService.php`, `config/user_access.php`, `CheckModuleAccess`) is appended to the `api` middleware group. It maps request paths to modules and answers `403` when a user lacks the module, or sends a `locationID` they were not granted. Admins pass everything. This works for the mobile app, with these gaps:
+
+- There is no endpoint that tells a client which locations the current user may see. `GET /dashboard` returns only the allowed module tiles (`data[].slug`) and `is_admin`; `/auth/me` returns the raw user row. Clients must probe location by location. Suggested one-line fix: add `'access' => UserAccessService::accessForUser($user)` to `DashboardController::dashboard()`.
+- `GET /locations/all` is not location-filtered and belongs to no module, so every user receives every location.
+- Location enforcement relies on a `locationID` request parameter. Endpoints that take no location (documents, home stay lists) are not location-filtered. Stock, Item Stock, Daily Collection, Attendance and the GRN/Gate Entry web pages filter by allowed locations or codes; the Gate Entry and GRN API list endpoints depend on the middleware check alone.
+- `profileImage` in the users datatable is built with `asset()`, so its host and port follow `APP_URL` (`http://127.0.0.1:8000` in the archive). A wrong `APP_URL` breaks profile photos for clients; the default avatar is an SVG.
+
 ## Flutter integration
 
-- Login's top-level `token` and `user` response matches the Flutter auth controller.
+- Login's top-level `token` and `user` response matches the Flutter auth controller. It has no `profileImage`; the app reads it from `/auth/me`, which returns the full user row (bare path such as `uploads/users/x.jpg`).
 - `/auth/me` returns the profile under `data`, matching Flutter's parser.
 - List endpoints use DataTables or conventional page metadata, matching the shared mobile pagination approach.
 - GRN detail returns `items` at the top level and requires `locationID`, matching the mobile repository.
+- Gate Entry: the API supports `month=YYYY-MM` (one month per call, cached 10 minutes for recent months), which the web list uses and the app now uses too. Rows arrive in stored-procedure order and the web sorts them newest first in the browser; the app sorts the same way.
 - Item Stock API image resolution can return the named web `stock.imageProxy` route. Flutter's rewrite to `/api/stock/image-proxy/...` is therefore necessary with this source; preferably the API should return its own authenticated image URL.
-- `/itemstock/permissions` exists, but the mobile screen does not request it. Align editing/upload controls with backend permissions, especially for non-admin accounts.
-- User save replaces existing field permissions and defaults absent permissions to an empty array. Clearing all permissions from mobile is supported by this backend behavior.
-- Four dashboard modules remain placeholders: Attendance, Pearl Stay, Daily Collection, and Floor Wise Sales.
+- `POST /itemstock/search` returns `permissions.fields` (supplier_name, supplier_mobile, contact_person, markup, markdown, discount, dp_exclusive, mrp, image_upload). The app hides unticked fields and the matching Save buttons from it.
+- `POST /users/save` accepts `access_submitted`, `access_modules[]`, `access_fields[module][]` and `access_locations[]`; `GET /users/{id}` returns `access` and `GET /users/access-options` returns the module and location options. The mobile User form uses all three. Access is only replaced when `access_submitted` is sent; each save also deletes the older per-table `user_field_permissions` rows.
+- `GET /dashboard` drives the mobile dashboard tiles and drawer links.
+- Daily Collection (`GET /daily-collection`) is now built in the app. Attendance, Pearl Stay and Floor Wise Sales remain placeholders.
 
 ## Clarification of the earlier live-site observation
 
@@ -103,7 +120,8 @@ Migrations create starter tables such as `users` and `locations`, but applicatio
 
 ## Suggested order of work
 
-1. Correct approval authorization, upload path handling, and credential handling.
+1. Correct approval authorization (findings 2 and 9), upload path handling, and credential handling.
+   Add the `access` block to `GET /dashboard` (finding 10) so clients need no location probing.
 2. Make field restrictions consistent across API, PDFs, and images.
 3. Verify production HTTPS/debug settings and sanitize deployment artifacts.
 4. Normalize API errors and web/mobile contracts; reduce duplicate controller logic.
