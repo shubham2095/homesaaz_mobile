@@ -9,7 +9,7 @@ import '../../app/tokens.dart';
 import '../../core/api_client.dart';
 import '../../core/config.dart';
 import '../../widgets/states.dart';
-import 'field_permissions_screen.dart';
+import 'access_editor.dart';
 import 'user_repository.dart';
 
 /// The API returns `profileImage` as a bare path (`uploads/users/x.jpg`)
@@ -48,7 +48,7 @@ class _UserFormState extends ConsumerState<_UserForm> {
   int _role = 0;
   XFile? _pickedImage;
   String? _existingImage;
-  Map<String, List<String>> _fieldPermissions = {};
+  AccessSelection _access = AccessSelection();
 
   bool _loading = false;
   bool _saving = false;
@@ -82,10 +82,7 @@ class _UserFormState extends ConsumerState<_UserForm> {
           ? (m['user_role'] as num).toInt()
           : int.tryParse('${m['user_role']}') ?? 0;
       _existingImage = absoluteAssetUrl(m['profileImage']);
-      if (_role == 0) {
-        _fieldPermissions =
-            await ref.read(userRepositoryProvider).userFieldPermissions(widget.userId!);
-      }
+      _access = AccessSelection.fromJson(m['access']);
     } catch (e) {
       _error = '$e';
     } finally {
@@ -121,7 +118,7 @@ class _UserFormState extends ConsumerState<_UserForm> {
             role: _role,
             password: _pwd.text,
             imagePath: _pickedImage?.path,
-            fieldPermissions: _fieldPermissions,
+            access: _access,
           );
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (e) {
@@ -220,19 +217,8 @@ class _UserFormState extends ConsumerState<_UserForm> {
                           DropdownMenuItem(value: 0, child: Text('User')),
                           DropdownMenuItem(value: 1, child: Text('Admin')),
                         ],
-                        onChanged: (v) => setState(() {
-                          _role = v ?? 0;
-                          if (_role == 1) _fieldPermissions = {};
-                        }),
+                        onChanged: (v) => setState(() => _role = v ?? 0),
                       ),
-                      if (_role == 0) ...[
-                        const SizedBox(height: 16),
-                        FieldPermissionsEditor(
-                          key: ValueKey(_isEdit ? widget.userId : 'new'),
-                          initial: _fieldPermissions,
-                          onChanged: (v) => _fieldPermissions = v,
-                        ),
-                      ],
                       const SizedBox(height: 16),
                       const Text('Profile Image',
                           style: TextStyle(
@@ -253,6 +239,38 @@ class _UserFormState extends ConsumerState<_UserForm> {
                           child: Text('Required for new users',
                               style:
                                   TextStyle(fontSize: 12, color: Hs.muted)),
+                        ),
+                      const SizedBox(height: 16),
+                      if (_role == 0)
+                        AccessEditor(
+                          key: ValueKey(_isEdit ? widget.userId : 'new'),
+                          selection: _access,
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAF5EC),
+                            borderRadius: BorderRadius.circular(Hs.radiusSm),
+                            border: Border.all(color: const Color(0xFFCFE6D3)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.verified_user_outlined,
+                                  size: 18, color: Hs.green),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Admin has access to all modules, fields and locations.',
+                                  style: TextStyle(
+                                      color: Hs.green,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       if (_error != null) ...[
                         const SizedBox(height: 14),

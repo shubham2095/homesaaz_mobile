@@ -55,6 +55,14 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
   Map<String, dynamic>? _result;
   Map<String, Color> _locationColors = {};
 
+  /// Field access granted on the User form — `permissions.fields` of the
+  /// search response (supplier_name, markup, mrp, image_upload …). null =
+  /// backend didn't say, so nothing is hidden.
+  Map<String, bool>? _fieldAccess;
+
+  /// Fields that aren't one of the configurable ones are always visible.
+  bool _can(String key) => _fieldAccess == null || (_fieldAccess![key] ?? false);
+
   @override
   void initState() {
     super.initState();
@@ -173,7 +181,11 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
       final discount = data.containsKey('Discount')
           ? (asNum(data['Discount'])?.toStringAsFixed(2) ?? '')
           : null;
+      final perms = (body['permissions'] as Map?)?['fields'];
       setState(() {
+        _fieldAccess = perms is Map
+            ? {for (final e in perms.entries) '${e.key}': e.value == true}
+            : null;
         _result = data;
         _code = code;
         _mrpCtrl.text = mrp ?? '';
@@ -527,12 +539,17 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
           HsRow('Unit', orDash(r['Unit']), bottomDivider: true),
           HsRow('Section Name', orDash(r['SectionName']), bottomDivider: true),
           HsRow('Quality Name', orDash(r['QualityName']), bottomDivider: true),
-          HsRow('Supplier Name', orDash(r['SupplierName']), bottomDivider: true),
-          HsRow('Supplier Mobile', orDash(r['SupplierMobileNo']),
-              bottomDivider: true),
-          HsRow('Contact Person', orDash(r['ContactPerson']), bottomDivider: true),
+          if (_can('supplier_name'))
+            HsRow('Supplier Name', orDash(r['SupplierName']),
+                bottomDivider: true),
+          if (_can('supplier_mobile'))
+            HsRow('Supplier Mobile', orDash(r['SupplierMobileNo']),
+                bottomDivider: true),
+          if (_can('contact_person'))
+            HsRow('Contact Person', orDash(r['ContactPerson']),
+                bottomDivider: true),
           HsRow('HSN Code', orDash(r['HSNCODE']), bottomDivider: true),
-          HsRow('MU', orDash(r['MU']), bottomDivider: true),
+          if (_can('markup')) HsRow('MU', orDash(r['MU']), bottomDivider: true),
           HsRow('Collection Name', orDash(r['COLLECTIONNAME'])),
         ],
       ),
@@ -551,7 +568,7 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
       headerColor: Hs.green,
       child: Column(
         children: [
-          if (r.containsKey('MRP'))
+          if (r.containsKey('MRP') && _can('mrp'))
             HsRow(
               'MRP',
               null,
@@ -563,15 +580,17 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
               ),
             ),
           HsRow('Cost Price', '₹ ${acost.toStringAsFixed(2)}', bottomDivider: true),
-          HsRow(
-            'Markup (%)',
-            r['Markup'] != null
-                ? '${(asNum(r['Markup']) ?? 0).toStringAsFixed(2)}%'
-                : '-',
-            bottomDivider: true,
-          ),
-          HsRow('Markdown (%)', orDash(r['MD']), bottomDivider: true),
-          if (r.containsKey('Discount'))
+          if (_can('markup'))
+            HsRow(
+              'Markup (%)',
+              r['Markup'] != null
+                  ? '${(asNum(r['Markup']) ?? 0).toStringAsFixed(2)}%'
+                  : '-',
+              bottomDivider: true,
+            ),
+          if (_can('markdown'))
+            HsRow('Markdown (%)', orDash(r['MD']), bottomDivider: true),
+          if (r.containsKey('Discount') && _can('discount'))
             HsRow(
               'Discount (%)',
               null,
@@ -582,8 +601,9 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
                 decoration: const InputDecoration(isDense: true),
               ),
             ),
-          HsRow('DP Exclusive', '₹ ${dpExclusive.toStringAsFixed(2)}',
-              bottomDivider: true),
+          if (_can('dp_exclusive'))
+            HsRow('DP Exclusive', '₹ ${dpExclusive.toStringAsFixed(2)}',
+                bottomDivider: true),
           HsRow('GST (%)', gst != null ? gst.toStringAsFixed(2) : '-'),
         ],
       ),
@@ -669,8 +689,9 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
   }
 
   Widget _saveButtonsRow() {
-    final hasMrp = _result?.containsKey('MRP') ?? false;
-    final hasDiscount = _result?.containsKey('Discount') ?? false;
+    final hasMrp = (_result?.containsKey('MRP') ?? false) && _can('mrp');
+    final hasDiscount =
+        (_result?.containsKey('Discount') ?? false) && _can('discount');
     if (!hasMrp && !hasDiscount) return const SizedBox.shrink();
     return Row(
       children: [
@@ -773,10 +794,12 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
                         ),
                       ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: hasPending ? _pendingActions() : _pickActions(),
-          ),
+          // Camera / gallery / save only for users with "Image Upload".
+          if (_can('image_upload'))
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: hasPending ? _pendingActions() : _pickActions(),
+            ),
         ],
       ),
     );

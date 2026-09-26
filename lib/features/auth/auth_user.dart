@@ -10,6 +10,7 @@ class AuthUser {
     required this.lastName,
     required this.email,
     required this.role,
+    this.profileImage,
   });
 
   final int id;
@@ -17,6 +18,9 @@ class AuthUser {
   final String lastName;
   final String email;
   final int role;
+
+  /// Bare path from the server (e.g. `uploads/users/x.jpg`), if any.
+  final String? profileImage;
 
   bool get isAdmin => role == 1;
   String get fullName => '$firstName $lastName'.trim();
@@ -37,6 +41,7 @@ class AuthUser {
       lastName: '${pick<Object?>(['lastname', 'LastName']) ?? ''}',
       email: '${pick<Object?>(['email', 'EmailID']) ?? ''}',
       role: asInt(pick<Object?>(['role', 'user_role']) ?? 0),
+      profileImage: pick<Object?>(['profileImage'])?.toString(),
     );
   }
 
@@ -46,5 +51,6 @@ class AuthUser {
         'lastname': lastName,
         'email': email,
         'role': role,
+        'profileImage': profileImage,
       };
 }

@@ -5,6 +5,7 @@ import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/paged_response.dart';
 import '../../core/providers.dart';
+import '../access/access_provider.dart';
 
 class LocationRow {
   LocationRow(this.raw);
@@ -34,8 +35,16 @@ class LocationRepository {
           perPage: AppConfig.pageSize,
           search: search,
         );
-    return PagedResponse.parse(body, LocationRow.fromJson,
+    final res = PagedResponse.parse(body, LocationRow.fromJson,
         page: page, perPage: AppConfig.pageSize);
+    // Only the locations this user was granted.
+    final access = await ref.read(userAccessProvider.future);
+    if (access.isAdmin || access.locationIds == null) return res;
+    return PagedResponse<LocationRow>(
+      items: res.items.where((l) => access.canLocation(l.id)).toList(),
+      meta: res.meta,
+      extra: res.extra,
+    );
   }
 
   Future<Map<String, dynamic>> getOne(int id) async {

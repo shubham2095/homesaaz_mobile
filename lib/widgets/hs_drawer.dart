@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/tokens.dart';
+import '../core/format.dart';
+import '../features/access/access_provider.dart';
 import '../features/auth/auth_controller.dart';
 import 'hs_widgets.dart';
 
@@ -11,24 +13,29 @@ import 'hs_widgets.dart';
 class HsDrawer extends ConsumerWidget {
   const HsDrawer({super.key});
 
-  static const _items = <({String label, IconData icon, String route, bool adminOnly})>[
-    (label: 'Dashboard', icon: Icons.grid_view_outlined, route: '/', adminOnly: false),
-    (label: 'All Stock Details', icon: Icons.inventory_2_outlined, route: '/stock', adminOnly: false),
-    (label: 'Item Stock', icon: Icons.widgets_outlined, route: '/item-stock', adminOnly: false),
-    (label: 'Upload Gate Entry Bill', icon: Icons.receipt_long_outlined, route: '/upload-gate-entry-bill', adminOnly: false),
-    (label: 'Home Stay', icon: Icons.cottage_outlined, route: '/home-stay', adminOnly: false),
-    (label: 'Gate Entry', icon: Icons.meeting_room_outlined, route: '/gate-entry', adminOnly: false),
-    (label: 'GRN', icon: Icons.assignment_turned_in_outlined, route: '/grn', adminOnly: false),
-    (label: 'Document Download', icon: Icons.file_download_outlined, route: '/documents', adminOnly: false),
-    (label: 'Locations', icon: Icons.location_on_outlined, route: '/locations', adminOnly: false),
-    (label: 'User', icon: Icons.people_outline, route: '/users', adminOnly: true),
+  // [slug] = backend module the link belongs to (null = always visible).
+  static const _items = <({String label, IconData icon, String route, bool adminOnly, String? slug})>[
+    (label: 'Dashboard', icon: Icons.grid_view_outlined, route: '/', adminOnly: false, slug: null),
+    (label: 'All Stock Details', icon: Icons.inventory_2_outlined, route: '/stock', adminOnly: false, slug: 'all-stock-details'),
+    (label: 'Item Stock', icon: Icons.widgets_outlined, route: '/item-stock', adminOnly: false, slug: 'item-stock'),
+    (label: 'Upload Gate Entry Bill', icon: Icons.receipt_long_outlined, route: '/upload-gate-entry-bill', adminOnly: false, slug: 'vendor-invoice'),
+    (label: 'Home Stay', icon: Icons.cottage_outlined, route: '/home-stay', adminOnly: false, slug: 'home-stay'),
+    (label: 'Gate Entry', icon: Icons.meeting_room_outlined, route: '/gate-entry', adminOnly: false, slug: 'gate-entry'),
+    (label: 'GRN', icon: Icons.assignment_turned_in_outlined, route: '/grn', adminOnly: false, slug: 'grn'),
+    (label: 'Document Download', icon: Icons.file_download_outlined, route: '/documents', adminOnly: false, slug: 'document-download'),
+    (label: 'Daily Collection', icon: Icons.point_of_sale_outlined, route: '/daily-collection', adminOnly: false, slug: 'daily-collection'),
+    (label: 'Locations', icon: Icons.location_on_outlined, route: '/locations', adminOnly: false, slug: null),
+    (label: 'User', icon: Icons.people_outline, route: '/users', adminOnly: true, slug: null),
   ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).user;
     final isAdmin = user?.isAdmin ?? false;
+    // While the access list loads (or if it fails) module links stay hidden.
+    final access = ref.watch(userAccessProvider).valueOrNull;
     final current = GoRouterState.of(context).matchedLocation;
+    final photo = profileImageUrl(user?.profileImage);
     final name = (user?.fullName.isNotEmpty ?? false) ? user!.fullName : 'User';
     final initials = name
         .trim()
@@ -62,7 +69,13 @@ class HsDrawer extends ConsumerWidget {
                       CircleAvatar(
                         radius: 20,
                         backgroundColor: Hs.teal,
-                        child: Text(initials,
+                        backgroundImage: photo == null
+                            ? null
+                            : NetworkImage(photo, headers: null),
+                        onBackgroundImageError: photo == null ? null : (_, __) {},
+                        child: photo != null
+                            ? null
+                            : Text(initials,
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
@@ -95,7 +108,8 @@ class HsDrawer extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
                   for (final (i, it) in _items.indexed)
-                    if (!it.adminOnly || isAdmin)
+                    if ((!it.adminOnly || isAdmin) &&
+                        (it.slug == null || (access?.canModule(it.slug!) ?? false)))
                       HsAppear(
                         index: i,
                         child: _NavTile(

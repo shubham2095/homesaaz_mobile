@@ -89,6 +89,8 @@ class AuthController extends Notifier<AuthState> {
       final user = AuthUser.fromJson((body['user'] as Map).cast<String, dynamic>());
       await _store.save(token, user.toJson());
       state = AuthState(status: AuthStatus.authenticated, user: user);
+      // The login response has no profile photo — /auth/me does.
+      await refreshProfile();
       return true;
     } on ApiException catch (e) {
       state = state.copyWith(error: e.message);
@@ -98,6 +100,21 @@ class AuthController extends Notifier<AuthState> {
       return false;
     } finally {
       _busy = false;
+    }
+  }
+
+  /// Re-reads the logged-in user (e.g. after a new profile photo was set).
+  Future<void> refreshProfile() async {
+    try {
+      final data = await ref.read(apiClientProvider).getData('/auth/me');
+      final token = await _store.readToken();
+      if (data is Map<String, dynamic> && token != null) {
+        final user = AuthUser.fromJson(data);
+        await _store.save(token, user.toJson());
+        state = AuthState(status: AuthStatus.authenticated, user: user);
+      }
+    } catch (_) {
+      // best effort — the drawer just keeps showing initials
     }
   }
 

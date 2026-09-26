@@ -6,6 +6,7 @@ import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/paged_response.dart';
 import '../../core/providers.dart';
+import '../access/access_provider.dart';
 
 /// GRN only works for these warehouse locations (the web hardcodes the
 /// same list in GateEntryController::list(), which GRN::datatable reuses).
@@ -43,8 +44,12 @@ final grnLocationsProvider = FutureProvider<Map<int, GrnLocation>>((ref) async {
   } catch (_) {
     // fall through to placeholder names
   }
+  // Only the locations this user was granted on the User form.
+  final access = await ref.watch(userAccessProvider.future);
   return {
-    for (final id in kGrnLocationIds) id: rows[id] ?? GrnLocation('Location $id', null),
+    for (final id in kGrnLocationIds)
+      if (access.canLocation(id))
+        id: rows[id] ?? GrnLocation('Location $id', null),
   };
 });
 

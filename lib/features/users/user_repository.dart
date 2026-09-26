@@ -19,12 +19,64 @@ class UserRow {
   bool get isAdmin => role == 1;
   String get roleLabel =>
       (raw['Role'] ?? (isAdmin ? 'Admin' : 'User')).toString();
-  String? get image {
-    final v = '${raw['profileImage'] ?? ''}';
-    return v.startsWith('http') ? v : null;
-  }
+  String? get image => profileImageUrl(raw['profileImage']);
 
   factory UserRow.fromJson(Map<String, dynamic> j) => UserRow(j);
+}
+
+/// What the User form lets an admin grant: dashboard modules (with their
+/// optional per-module fields) and locations.
+class AccessOptions {
+  AccessOptions(this.modules, this.locations);
+  final List<AccessModule> modules;
+  final List<AccessLocation> locations;
+}
+
+class AccessModule {
+  AccessModule(this.slug, this.label, this.fields);
+  final String slug;
+  final String label;
+  final List<({String key, String label})> fields;
+}
+
+class AccessLocation {
+  AccessLocation(this.id, this.name, this.code);
+  final int id;
+  final String name;
+  final String code;
+}
+
+/// One user's grants, as edited on the form.
+class AccessSelection {
+  AccessSelection({
+    Set<String>? modules,
+    Map<String, Set<String>>? fields,
+    Set<int>? locations,
+  })  : modules = modules ?? {},
+        fields = fields ?? {},
+        locations = locations ?? {};
+
+  final Set<String> modules;
+  final Map<String, Set<String>> fields;
+  final Set<int> locations;
+
+  /// From `access` in GET /users/{id}.
+  factory AccessSelection.fromJson(Object? j) {
+    if (j is! Map) return AccessSelection();
+    final f = j['fields'];
+    return AccessSelection(
+      modules: ((j['modules'] as List?) ?? const []).map((e) => '$e').toSet(),
+      fields: {
+        if (f is Map)
+          for (final e in f.entries)
+            '${e.key}': ((e.value as List?) ?? const []).map((x) => '$x').toSet(),
+      },
+      locations: {
+        for (final v in (j['locations'] as List?) ?? const [])
+          if (asInt(v) != null) asInt(v)!,
+      },
+    );
+  }
 }
 
 final userRepositoryProvider = Provider((ref) => UserRepository(ref));
@@ -42,6 +94,30 @@ class UserRepository {
         );
     return PagedResponse.parse(body, UserRow.fromJson,
         page: page, perPage: AppConfig.pageSize);
+  }
+
+  /// GET /users/access-options -> modules (+ fields) and locations.
+  Future<AccessOptions> accessOptions() async {
+    final data = await ref.read(apiClientProvider).getData('/users/access-options');
+    final m = (data as Map?) ?? const {};
+    return AccessOptions(
+      [
+        for (final e in (m['modules'] as List? ?? const []).whereType<Map>())
+          AccessModule(
+            '${e['slug']}',
+            '${e['label'] ?? e['slug']}',
+            [
+              for (final f in (e['fields'] as List? ?? const []).whereType<Map>())
+                (key: '${f['key']}', label: '${f['label'] ?? f['key']}'),
+            ],
+          ),
+      ],
+      [
+        for (final e in (m['locations'] as List? ?? const []).whereType<Map>())
+          if (asInt(e['id']) != null)
+            AccessLocation(asInt(e['id'])!, '${e['name'] ?? ''}', '${e['code'] ?? ''}'),
+      ],
+    );
   }
 
   Future<Map<String, dynamic>> getUser(int id) async {
@@ -82,9 +158,8 @@ class UserRepository {
   }
 
   /// Create ([id] == null) or update. [imagePath] optional on edit,
-  /// required by the API on create. [fieldPermissions] is ignored by the
-  /// backend for Admin users (they always see every field) — only send it
-  /// for role `0` (User).
+  /// required by the API on create. [access] (modules / module fields /
+  /// locations) is only sent for role `0` (User).
   Future<void> save({
     int? id,
     required String firstName,
@@ -93,7 +168,7 @@ class UserRepository {
     required int role,
     String? password,
     String? imagePath,
-    Map<String, List<String>>? fieldPermissions,
+    AccessSelection? access,
   }) async {
     final fields = <String, dynamic>{
       'FirstName': firstName,
@@ -104,8 +179,18 @@ class UserRepository {
       'ID': ?id,
     };
     if ((password ?? '').isNotEmpty) fields['Pwd'] = password;
-    if (role == 0 && fieldPermissions != null && fieldPermissions.isNotEmpty) {
-      fields['field_permissions'] = fieldPermissions;
+    // Admins always have full access, so their grants are left untouched.
+    // `access_submitted` tells the backend to replace the stored grants —
+    // that is how un-ticking everything is saved.
+    if (role == 0 && access != null) {
+      fields['access_submitted'] = 1;
+      fields['access_modules'] = access.modules.toList();
+      fields['access_fields'] = {
+        for (final e in access.fields.entries)
+          if (access.modules.contains(e.key) && e.value.isNotEmpty)
+            e.key: e.value.toList(),
+      };
+      fields['access_locations'] = access.locations.map((e) => '$e').toList();
     }
     await ref.read(apiClientProvider).postForm(
           '/users/save',

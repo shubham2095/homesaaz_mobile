@@ -9,6 +9,7 @@ import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/paged_response.dart';
 import '../../core/providers.dart';
+import '../access/access_provider.dart';
 
 /// Gate Entry only works for these warehouse locations (the web hardcodes
 /// the same list in GateEntryController::list()).
@@ -47,9 +48,12 @@ FutureProvider<Map<int, GateEntryLocation>>((ref) async {
   } catch (_) {
     // fall through to placeholder names
   }
+  // Only the locations this user was granted on the User form.
+  final access = await ref.watch(userAccessProvider.future);
   return {
     for (final id in kGateEntryLocationIds)
-      id: rows[id] ?? GateEntryLocation('Location $id', null),
+      if (access.canLocation(id))
+        id: rows[id] ?? GateEntryLocation('Location $id', null),
   };
 });
 

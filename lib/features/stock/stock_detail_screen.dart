@@ -7,6 +7,7 @@ import '../../core/format.dart';
 import '../../widgets/hs_app_bar.dart';
 import '../../widgets/hs_drawer.dart';
 import '../../widgets/states.dart';
+import '../access/access_provider.dart';
 import 'stock_repository.dart';
 
 /// Same 13 warehouse location codes as the "All Stock Details" table
@@ -33,6 +34,7 @@ class StockDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final future = ref.watch(_provider(id));
+    final access = ref.watch(userAccessProvider).valueOrNull;
     return Scaffold(
       drawer: const HsDrawer(),
       appBar: const HsAppBar(title: 'Stock Item Details'),
@@ -88,8 +90,10 @@ class StockDetailScreen extends ConsumerWidget {
               '🏬',
               'Warehouse Stock',
               _table([
+                // Only the locations this user was granted.
                 for (final code in _locationCodes)
-                  _Row(code, (asNum(m[code]) ?? 0).toStringAsFixed(2)),
+                  if (access?.canLocationCode(code) ?? false)
+                    _Row(code, (asNum(m[code]) ?? 0).toStringAsFixed(2)),
               ]),
             ),
           ],

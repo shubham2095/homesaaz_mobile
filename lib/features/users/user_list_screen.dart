@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/tokens.dart';
 import '../../core/api_client.dart';
+import '../auth/auth_controller.dart';
 import '../../widgets/hs_app_bar.dart';
 import '../../widgets/hs_dialog.dart';
 import '../../widgets/hs_drawer.dart';
@@ -39,6 +40,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen>
   Future<void> _edit(UserRow u) async {
     final saved = await showUserForm(context, userId: u.id);
     if (saved == true) {
+      // Editing yourself? Pick up the new name / profile photo.
+      if (u.id == ref.read(authControllerProvider).user?.id) {
+        ref.read(authControllerProvider.notifier).refreshProfile();
+      }
       _snack('User updated');
       _refresh();
     }

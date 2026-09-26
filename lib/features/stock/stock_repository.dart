@@ -5,6 +5,7 @@ import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/paged_response.dart';
 import '../../core/providers.dart';
+import '../access/access_provider.dart';
 
 class StockItem {
   StockItem(this.raw);
@@ -101,9 +102,12 @@ class StockRepository {
   /// [{ Locationcode, LocationName }]
   Future<List<Map<String, dynamic>>> locations() async {
     final data = await ref.read(apiClientProvider).getData('/locations/all');
+    final access = await ref.read(userAccessProvider.future);
     return ((data as List?) ?? const [])
         .whereType<Map>()
         .map((e) => e.cast<String, dynamic>())
+        // Only the locations this user was granted on the User form.
+        .where((e) => access.canLocation(asInt(e['LocationID']) ?? -1))
         .toList();
   }
 
