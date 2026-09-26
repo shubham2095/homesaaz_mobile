@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
 import '../features/bed_occupancy/bed_occupancy_screen.dart';
+import '../features/daily_collection/daily_collection_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/documents/document_detail_screen.dart';
 import '../features/documents/document_list_screen.dart';
@@ -117,6 +118,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/documents/:id',
         builder: (_, s) =>
             DocumentDetailScreen(id: int.parse(s.pathParameters['id']!)),
+      ),
+
+      GoRoute(
+        path: '/daily-collection',
+        builder: (_, __) => const DailyCollectionScreen(),
       ),
 
       GoRoute(path: '/locations', builder: (_, __) => const LocationListScreen()),

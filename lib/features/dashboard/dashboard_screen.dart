@@ -90,7 +90,7 @@ const _tiles = <({
   (
     label: 'DAILY COLLECTION',
     icon: Icons.point_of_sale_outlined,
-    route: null,
+    route: '/daily-collection',
     adminOnly: false,
     image: 'assets/images/DAILY COLLECTION.jpg',
   ),

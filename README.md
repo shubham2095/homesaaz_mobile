@@ -14,10 +14,11 @@ Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, 
 | Upload Gate Entry Bill | Create, edit, view, approve, reject, and delete bills |
 | Documents | Filtered lists, details, PDF download |
 | Home Stay | Pending rent, student details, bed occupancy, new admission records |
+| Daily Collection | Location-wise cash, credit card and cheque totals with search and grand total |
 | Locations | List, create, edit, and delete locations |
 | Users | User management and field permissions; navigation is shown to admins |
 
-Attendance, Pearl Stay, Daily Collection, and Floor Wise Sales are dashboard placeholders showing **Coming soon**. Only the Android platform project is included. The app uses a light theme.
+Attendance, Pearl Stay, and Floor Wise Sales are dashboard placeholders showing **Coming soon**. Only the Android platform project is included. The app uses a light theme.
 
 ## Requirements
 
