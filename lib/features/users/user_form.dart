@@ -7,20 +7,10 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../app/tokens.dart';
 import '../../core/api_client.dart';
-import '../../core/config.dart';
+import '../../core/format.dart';
 import '../../widgets/states.dart';
 import 'access_editor.dart';
 import 'user_repository.dart';
-
-/// The API returns `profileImage` as a bare path (`uploads/users/x.jpg`)
-/// from GET /users/{id}, or a full URL from the datatable. Normalise it.
-String? absoluteAssetUrl(Object? v) {
-  final s = '${v ?? ''}'.trim();
-  if (s.isEmpty) return null;
-  if (s.startsWith('http')) return s;
-  final origin = AppConfig.baseUrl.replaceFirst(RegExp(r'/api/?$'), '');
-  return '$origin/${s.replaceFirst(RegExp(r'^/+'), '')}';
-}
 
 /// Opens the add / edit sheet. Returns `true` if a change was saved.
 Future<bool?> showUserForm(BuildContext context, {int? userId}) {
@@ -81,7 +71,13 @@ class _UserFormState extends ConsumerState<_UserForm> {
       _role = (m['user_role'] is num)
           ? (m['user_role'] as num).toInt()
           : int.tryParse('${m['user_role']}') ?? 0;
-      _existingImage = absoluteAssetUrl(m['profileImage']);
+      // GET /users/{id} now resolves this server-side (`profileImageUrl`) —
+      // use it directly, falling back to the bare `profileImage` path only
+      // if an older backend didn't send it.
+      final resolved = m['profileImageUrl'];
+      _existingImage = (resolved is String && resolved.trim().isNotEmpty)
+          ? resolved
+          : profileImageUrl(m['profileImage']);
       _access = AccessSelection.fromJson(m['access']);
     } catch (e) {
       _error = '$e';

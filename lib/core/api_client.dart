@@ -56,9 +56,20 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? query,
     bool logoutOn401 = true,
+    // Lets a caller give a slow, unfiltered report-style query (e.g.
+    // Attendance with no location picked) more room than the default.
+    Duration? receiveTimeout,
   }) async {
-    return _send(() => dio.get(path, queryParameters: _clean(query)),
-        logoutOn401: logoutOn401);
+    return _send(
+      () => dio.get(
+        path,
+        queryParameters: _clean(query),
+        options: receiveTimeout == null
+            ? null
+            : Options(receiveTimeout: receiveTimeout),
+      ),
+      logoutOn401: logoutOn401,
+    );
   }
 
   /// GET a paginated list. Always sends `page` / `per_page` and the

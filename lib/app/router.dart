@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/attendance/attendance_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/login_screen.dart';
 import '../features/bed_occupancy/bed_occupancy_screen.dart';
@@ -123,6 +124,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/daily-collection',
         builder: (_, __) => const DailyCollectionScreen(),
+      ),
+      GoRoute(
+        path: '/attendance',
+        builder: (_, __) => const AttendanceScreen(),
       ),
 
       GoRoute(path: '/locations', builder: (_, __) => const LocationListScreen()),

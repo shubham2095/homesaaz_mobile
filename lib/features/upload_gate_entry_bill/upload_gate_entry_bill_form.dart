@@ -8,8 +8,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../app/tokens.dart';
 import '../../core/api_client.dart';
+import '../../core/format.dart';
 import '../../widgets/states.dart';
-import '../users/user_form.dart' show absoluteAssetUrl;
 import 'upload_gate_entry_bill_repository.dart';
 
 /// Opens the add / edit sheet. Returns `true` if a change was saved.
@@ -53,7 +53,7 @@ class _BillFormState extends ConsumerState<_BillForm> {
       final m =
           await ref.read(uploadGateEntryBillRepositoryProvider).getOne(widget.id!);
       _invoiceNumber = '${m['InvoiceNumber'] ?? ''}';
-      _existingImage = absoluteAssetUrl(m['ImagePath']);
+      _existingImage = resolveAssetUrl(m['ImagePath']);
     } catch (e) {
       _error = '$e';
     } finally {

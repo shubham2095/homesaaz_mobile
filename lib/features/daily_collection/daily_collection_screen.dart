@@ -2,8 +2,14 @@
 //
 // Mirrors the web Daily Collection page: 4 summary cards, location search,
 // then the location-wise table with a TOTAL row.
-import 'dart:async';
-
+//
+// The backend's own search only matches the `Location` CODE column (e.g.
+// "LJP"), but the table itself (like the web) shows that same code, not
+// the full branch name — so searching by name silently returned nothing.
+// Fixed by loading the full (small, unpaginated) list once and filtering
+// locally against BOTH the code and `LocationName`, recomputing the
+// summary cards + TOTAL row from whatever rows are currently visible —
+// exactly what the backend's own search does server-side.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -39,35 +45,58 @@ class _DailyCollectionScreenState
     extends ConsumerState<DailyCollectionScreen> {
   final _hScroll = LinkedScrollControllerGroup();
   final _searchCtrl = TextEditingController();
-  Timer? _debounce;
   String _search = '';
   late Future<DailyCollectionResult> _future = _fetch();
 
+  // Always loads the full list — search is applied locally below, so a new
+  // keystroke never needs a network round trip.
   Future<DailyCollectionResult> _fetch() =>
-      ref.read(dailyCollectionRepositoryProvider).load(search: _search);
+      ref.read(dailyCollectionRepositoryProvider).load();
 
   void _reload() => setState(() => _future = _fetch());
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged(String v) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      _search = v.trim();
-      _reload();
-    });
-  }
+  void _onSearchChanged(String v) => setState(() => _search = v.trim());
 
   void _reset() {
-    _debounce?.cancel();
     _searchCtrl.clear();
-    _search = '';
-    _reload();
+    setState(() => _search = '');
+  }
+
+  /// Matches the backend's own `Location` (code) match, plus the full
+  /// `LocationName` — so searching "LJP" and "HOME SAAZ LJP" both work.
+  List<Map<String, dynamic>> _filteredRows(List<Map<String, dynamic>> rows) {
+    final q = _search.toLowerCase();
+    if (q.isEmpty) return rows;
+    return rows.where((r) {
+      final code = '${r['Location'] ?? ''}'.toLowerCase();
+      final name = '${r['LocationName'] ?? ''}'.toLowerCase();
+      return code.contains(q) || name.contains(q);
+    }).toList();
+  }
+
+  /// Cash/Credit Card/Cheque/Total for whichever rows are currently
+  /// visible — the cards and TOTAL row track the search like the web's own
+  /// server-side totals do.
+  Map<String, num> _totalsFor(List<Map<String, dynamic>> rows) {
+    num cash = 0, card = 0, cheque = 0, amount = 0;
+    for (final r in rows) {
+      cash += asNum(r['Cash']) ?? 0;
+      card += asNum(r['CreditCard']) ?? 0;
+      cheque += asNum(r['Cheque']) ?? 0;
+      amount += asNum(r['TAmount']) ?? 0;
+    }
+    return {
+      'Cash': cash,
+      'CreditCard': card,
+      'Cheque': cheque,
+      'TAmount': amount,
+    };
   }
 
   @override
@@ -100,7 +129,8 @@ class _DailyCollectionScreenState
   }
 
   Widget _content(DailyCollectionResult r) {
-    final t = r.totals;
+    final rows = _filteredRows(r.rows);
+    final t = _totalsFor(rows);
     return RefreshIndicator(
       onRefresh: () async {
         _reload();
@@ -168,18 +198,19 @@ class _DailyCollectionScreenState
                     leadingWidth: 40,
                     leadingLabel: '#',
                   ),
-                  if (r.rows.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text('No records found.',
-                          style: TextStyle(color: Hs.muted)),
+                  if (rows.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                          _search.isEmpty
+                              ? 'No records found.'
+                              : 'No location matches "$_search".',
+                          style: const TextStyle(color: Hs.muted)),
                     )
                   else ...[
-                    for (final row in r.rows)
-                      _row(row,
-                          dailyCollectionRowColor(
-                              r.locationColors, row['Location'])),
-                    _totalRow(t, r.rows.length),
+                    for (final row in rows)
+                      _row(row, parseHexColor('${row['LocationColor'] ?? ''}')),
+                    _totalRow(t, rows.length),
                   ],
                 ],
               ),

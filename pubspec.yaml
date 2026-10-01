@@ -41,6 +41,9 @@ dependencies:
   # camera / gallery picker for Item Stock image upload
   image_picker: ^1.1.2
 
+  # tel: links (tap a phone number to call), matching the web app
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
