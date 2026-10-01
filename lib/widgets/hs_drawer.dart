@@ -23,6 +23,7 @@ class HsDrawer extends ConsumerWidget {
     (label: 'Gate Entry', icon: Icons.meeting_room_outlined, route: '/gate-entry', adminOnly: false, slug: 'gate-entry'),
     (label: 'GRN', icon: Icons.assignment_turned_in_outlined, route: '/grn', adminOnly: false, slug: 'grn'),
     (label: 'Attendance', icon: Icons.people_alt_outlined, route: '/attendance', adminOnly: false, slug: 'attendance'),
+    (label: 'Floor Wise Sales', icon: Icons.upload_outlined, route: '/floor-wise-sales', adminOnly: false, slug: 'floor-wise-sales'),
     (label: 'Document Download', icon: Icons.file_download_outlined, route: '/documents', adminOnly: false, slug: 'document-download'),
     (label: 'Daily Collection', icon: Icons.point_of_sale_outlined, route: '/daily-collection', adminOnly: false, slug: 'daily-collection'),
     (label: 'Locations', icon: Icons.location_on_outlined, route: '/locations', adminOnly: false, slug: null),

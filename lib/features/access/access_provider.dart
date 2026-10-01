@@ -62,7 +62,7 @@ const kModules = <ModuleDef>[
       route: '/daily-collection', image: 'assets/images/DAILY COLLECTION.jpg'),
   ModuleDef('floor-wise-sales', 'FLOOR WISE SALES', Icons.upload_outlined,
       Color(0xFFF4A1C4),
-      image: 'assets/images/FLOOR WISE SALES.jpg'),
+      route: '/floor-wise-sales', image: 'assets/images/FLOOR WISE SALES.jpg'),
 ];
 
 ModuleDef? moduleBySlug(String slug) {

@@ -11,6 +11,7 @@ import '../features/daily_collection/daily_collection_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/documents/document_detail_screen.dart';
 import '../features/documents/document_list_screen.dart';
+import '../features/floor_wise_sales/floor_wise_sales_screen.dart';
 import '../features/gate_entry/gate_entry_details_screen.dart';
 import '../features/gate_entry/gate_entry_screen.dart';
 import '../features/grn/grn_items_screen.dart';
@@ -128,6 +129,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/attendance',
         builder: (_, __) => const AttendanceScreen(),
+      ),
+      GoRoute(
+        path: '/floor-wise-sales',
+        builder: (_, __) => const FloorWiseSalesScreen(),
       ),
 
       GoRoute(path: '/locations', builder: (_, __) => const LocationListScreen()),

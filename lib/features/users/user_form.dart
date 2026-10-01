@@ -35,7 +35,9 @@ class _UserFormState extends ConsumerState<_UserForm> {
   final _last = TextEditingController();
   final _email = TextEditingController();
   final _pwd = TextEditingController();
-  int _role = 0;
+  // null = not chosen yet — the web form has no default role either, and
+  // makes picking one required.
+  int? _role;
   XFile? _pickedImage;
   String? _existingImage;
   AccessSelection _access = AccessSelection();
@@ -111,7 +113,9 @@ class _UserFormState extends ConsumerState<_UserForm> {
             firstName: _first.text.trim(),
             lastName: _last.text.trim(),
             email: _email.text.trim(),
-            role: _role,
+            // The Role field's own validator already blocked submission
+            // while this was null.
+            role: _role!,
             password: _pwd.text,
             imagePath: _pickedImage?.path,
             access: _access,
@@ -187,12 +191,12 @@ class _UserFormState extends ConsumerState<_UserForm> {
                       const SizedBox(height: 12),
                       _field(_last, 'Last Name', validator: _required),
                       const SizedBox(height: 12),
-                      _field(_email, 'Email',
+                      _field(_email, 'Email (Optional)',
                           keyboard: TextInputType.emailAddress,
-                          validator: (v) {
-                        if ((v ?? '').trim().isEmpty) return 'Required';
-                        final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+')
-                            .hasMatch(v!.trim());
+                          hint: 'name@example.com', validator: (v) {
+                        final t = (v ?? '').trim();
+                        if (t.isEmpty) return null;
+                        final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+').hasMatch(t);
                         return ok ? null : 'Enter a valid email';
                       }),
                       const SizedBox(height: 12),
@@ -200,20 +204,22 @@ class _UserFormState extends ConsumerState<_UserForm> {
                           obscure: true,
                           helper: _isEdit
                               ? 'Leave blank to keep current'
-                              : 'Minimum 6 characters', validator: (v) {
+                              : 'Minimum 4 characters', validator: (v) {
                         if (_isEdit && (v ?? '').isEmpty) return null;
-                        if ((v ?? '').length < 6) return 'Minimum 6 characters';
+                        if ((v ?? '').length < 4) return 'Minimum 4 characters';
                         return null;
                       }),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<int>(
                         initialValue: _role,
-                        decoration: const InputDecoration(labelText: 'Role'),
+                        decoration: const InputDecoration(
+                            labelText: 'Role', hintText: 'Select Role'),
                         items: const [
                           DropdownMenuItem(value: 0, child: Text('User')),
                           DropdownMenuItem(value: 1, child: Text('Admin')),
                         ],
-                        onChanged: (v) => setState(() => _role = v ?? 0),
+                        validator: (v) => v == null ? 'Please select a role' : null,
+                        onChanged: (v) => setState(() => _role = v),
                       ),
                       const SizedBox(height: 16),
                       const Text('Profile Image',
@@ -229,15 +235,21 @@ class _UserFormState extends ConsumerState<_UserForm> {
                             ? 'Choose Image'
                             : 'Change Image'),
                       ),
-                      if (!_isEdit)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Text('Required for new users',
-                              style:
-                                  TextStyle(fontSize: 12, color: Hs.muted)),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          _isEdit
+                              ? 'JPG, PNG, WEBP or GIF, max 5 MB.'
+                              : 'JPG, PNG, WEBP or GIF, max 5 MB. '
+                                  'Profile image is required.',
+                          style:
+                              const TextStyle(fontSize: 12, color: Hs.muted),
                         ),
+                      ),
                       const SizedBox(height: 16),
-                      if (_role == 0)
+                      if (_role == null)
+                        const SizedBox.shrink()
+                      else if (_role == 0)
                         AccessEditor(
                           key: ValueKey(_isEdit ? widget.userId : 'new'),
                           selection: _access,
@@ -321,13 +333,15 @@ class _UserFormState extends ConsumerState<_UserForm> {
     TextInputType? keyboard,
     bool obscure = false,
     String? helper,
+    String? hint,
   }) {
     return TextFormField(
       controller: c,
       keyboardType: keyboard,
       obscureText: obscure,
       validator: validator,
-      decoration: InputDecoration(labelText: label, helperText: helper),
+      decoration: InputDecoration(
+          labelText: label, helperText: helper, hintText: hint),
     );
   }
 

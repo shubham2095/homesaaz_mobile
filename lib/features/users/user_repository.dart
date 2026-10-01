@@ -173,7 +173,10 @@ class UserRepository {
     final fields = <String, dynamic>{
       'FirstName': firstName,
       'LastName': lastName,
-      'EmailID': email,
+      // Email is optional on the backend now — omit the key entirely when
+      // blank rather than sending an empty string, so its `nullable|email`
+      // rule doesn't reject an empty value as a badly-formed one.
+      'EmailID': ?(email.isEmpty ? null : email),
       'user_role': role,
       'IsActive': 1,
       'ID': ?id,
