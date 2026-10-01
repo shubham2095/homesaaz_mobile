@@ -1,4 +1,5 @@
 // lib/core/format.dart
+import 'package:flutter/material.dart' show Color;
 import 'package:intl/intl.dart';
 
 import 'config.dart';
@@ -52,4 +53,13 @@ String? profileImageUrl(Object? v) {
   if (s.isEmpty || s.toLowerCase().endsWith('.svg')) return null;
   final origin = AppConfig.baseUrl.replaceFirst(RegExp(r'/api/?$'), '');
   return '$origin/$s';
+}
+
+/// Parses a `#RRGGBB` (or bare `RRGGBB`) Location colour. Same rule Gate
+/// Entry / GRN use for their location chips.
+Color? parseHexColor(String? v) {
+  final s = (v ?? '').replaceAll('#', '').trim();
+  if (s.length != 6) return null;
+  final n = int.tryParse('FF$s', radix: 16);
+  return n == null ? null : Color(n);
 }

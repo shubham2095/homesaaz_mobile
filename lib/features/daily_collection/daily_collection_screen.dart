@@ -175,7 +175,10 @@ class _DailyCollectionScreenState
                           style: TextStyle(color: Hs.muted)),
                     )
                   else ...[
-                    for (final row in r.rows) _row(row),
+                    for (final row in r.rows)
+                      _row(row,
+                          dailyCollectionRowColor(
+                              r.locationColors, row['Location'])),
                     _totalRow(t, r.rows.length),
                   ],
                 ],
@@ -246,11 +249,14 @@ class _DailyCollectionScreenState
             color: n == 0 ? Hs.faint : (bold ? Hs.ink : Hs.inkSoft)));
   }
 
-  Widget _row(Map<String, dynamic> m) {
+  Widget _row(Map<String, dynamic> m, Color? locationColor) {
     return HsTableRow(
       columns: _columns,
       group: _hScroll,
       leadingWidth: 40,
+      // A soft tint of the branch's own colour (Locations page), same idea
+      // as the Stock table's per-location row tint.
+      backgroundColor: locationColor?.withValues(alpha: .07),
       leading: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Align(
@@ -260,9 +266,28 @@ class _DailyCollectionScreenState
         ),
       ),
       cells: [
-        Text(orDash(m['Location']),
-            style: const TextStyle(
-                fontWeight: FontWeight.w700, color: Hs.ink, fontSize: 13)),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 9,
+              height: 9,
+              margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                color: locationColor ?? Hs.border,
+                shape: BoxShape.circle,
+              ),
+            ),
+            Flexible(
+              child: Text(orDash(m['Location']),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Hs.ink,
+                      fontSize: 13)),
+            ),
+          ],
+        ),
         _amt(m['Cash']),
         _amt(m['CreditCard']),
         _amt(m['Cheque']),

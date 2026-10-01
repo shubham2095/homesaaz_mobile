@@ -14,10 +14,15 @@ import '../auth/auth_controller.dart';
 
 /// A dashboard module, keyed by the backend's slug (config/user_access.php).
 class ModuleDef {
-  const ModuleDef(this.slug, this.label, this.icon, {this.route, this.image});
+  const ModuleDef(this.slug, this.label, this.icon, this.color,
+      {this.route, this.image});
   final String slug;
   final String label;
   final IconData icon;
+
+  /// Per-tile accent border colour — every web dashboard tile has its own
+  /// pastel outline; mirrored here so the mobile tiles aren't all plain grey.
+  final Color color;
 
   /// null = not built on mobile yet ("Coming soon").
   final String? route;
@@ -26,26 +31,37 @@ class ModuleDef {
 
 const kModules = <ModuleDef>[
   ModuleDef('item-stock', 'ITEM STOCK', Icons.widgets_outlined,
+      Color(0xFF7FC8A9),
       route: '/item-stock', image: 'assets/images/ITEM STOCK.jpg'),
-  ModuleDef('all-stock-details', 'ALL STOCK DETAILS', Icons.inventory_2_outlined,
+  ModuleDef('all-stock-details', 'ALL STOCK DETAILS',
+      Icons.inventory_2_outlined, Color(0xFF7FB3F5),
       route: '/stock', image: 'assets/images/ALL STOCK DETAILS.jpg'),
-  ModuleDef('vendor-invoice', 'UPLOAD GATE ENTRY BILL', Icons.receipt_long_outlined,
+  ModuleDef('vendor-invoice', 'UPLOAD GATE ENTRY BILL',
+      Icons.receipt_long_outlined, Color(0xFFF2A6B3),
       route: '/upload-gate-entry-bill', image: 'assets/images/UPLOAD BILL.png'),
   ModuleDef('gate-entry', 'GATE ENTRY', Icons.meeting_room_outlined,
+      Color(0xFFF0879A),
       route: '/gate-entry', image: 'assets/images/GATE ENTRY.jpg'),
   ModuleDef('grn', 'GRN', Icons.assignment_turned_in_outlined,
+      Color(0xFF6FD6D1),
       route: '/grn', image: 'assets/images/GRN.png'),
   ModuleDef('attendance', 'ATTENDANCE', Icons.people_alt_outlined,
+      Color(0xFFB39DF5),
       image: 'assets/images/ATTENDANCE.jpg'),
   ModuleDef('home-stay', 'HOME STAY', Icons.cottage_outlined,
+      Color(0xFFB39DF5),
       route: '/home-stay'),
   ModuleDef('pearl-stay', 'PEARL STAY', Icons.home_outlined,
+      Color(0xFF7FC8A9),
       image: 'assets/images/PEARL STAY.JPG'),
-  ModuleDef('document-download', 'DOCUMENT DOWNLOAD', Icons.file_download_outlined,
+  ModuleDef('document-download', 'DOCUMENT DOWNLOAD',
+      Icons.file_download_outlined, Color(0xFFF08A8A),
       route: '/documents', image: 'assets/images/DOWNLOAD DOCUMENT.jpg'),
-  ModuleDef('daily-collection', 'DAILY COLLECTION', Icons.point_of_sale_outlined,
+  ModuleDef('daily-collection', 'DAILY COLLECTION',
+      Icons.point_of_sale_outlined, Color(0xFF7FB3F5),
       route: '/daily-collection', image: 'assets/images/DAILY COLLECTION.jpg'),
   ModuleDef('floor-wise-sales', 'FLOOR WISE SALES', Icons.upload_outlined,
+      Color(0xFFF4A1C4),
       image: 'assets/images/FLOOR WISE SALES.jpg'),
 ];
 

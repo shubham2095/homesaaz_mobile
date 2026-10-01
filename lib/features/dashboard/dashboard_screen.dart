@@ -62,6 +62,7 @@ class DashboardScreen extends ConsumerWidget {
                         icon: t.icon,
                         label: t.label,
                         imageAsset: t.image,
+                        borderColor: t.color,
                         onTap: () {
                           if (t.route == null) {
                             ScaffoldMessenger.of(context)

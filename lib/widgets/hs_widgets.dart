@@ -144,13 +144,15 @@ class HsRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: valueWidget ??
+            child:
+                valueWidget ??
                 Text(
                   text,
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight:
-                        (bold ?? false) ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: (bold ?? false)
+                        ? FontWeight.w700
+                        : FontWeight.w500,
                     color: valueColor ?? Hs.inkSoft,
                     height: 1.3,
                   ),
@@ -295,6 +297,7 @@ class HsGridTile extends StatefulWidget {
     required this.onTap,
     this.enabled = true,
     this.imageAsset,
+    this.borderColor,
   });
 
   final IconData icon;
@@ -305,80 +308,118 @@ class HsGridTile extends StatefulWidget {
   /// When set, a photo/logo asset replaces the plain icon glyph.
   final String? imageAsset;
 
+  /// Per-tile accent border (web dashboard gives every tile its own pastel
+  /// colour). Falls back to the plain grey outline when not set.
+  final Color? borderColor;
+
   @override
   State<HsGridTile> createState() => _HsGridTileState();
 }
 
 class _HsGridTileState extends State<HsGridTile> {
   bool _down = false;
+  // Only ever set by a mouse/trackpad (MouseRegion.onEnter never fires for
+  // touch) — so this is a no-op on a phone and a real hover on desktop/web.
+  bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _down ? 0.98 : 1,
-      duration: Hs.fast,
-      curve: Hs.curve,
-      child: AnimatedOpacity(
-        opacity: widget.enabled ? 1 : 0.5,
+    final accent = widget.borderColor ?? Hs.teal;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedScale(
+        scale: _down ? 0.98 : (_hover ? 1.02 : 1),
         duration: Hs.fast,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Hs.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFCFCFCF)),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: widget.onTap,
-                onTapDown: (_) => setState(() => _down = true),
-                onTapUp: (_) => setState(() => _down = false),
-                onTapCancel: () => setState(() => _down = false),
-                splashColor: Hs.teal.withValues(alpha: .08),
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 130),
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        height: 74,
-                        child: widget.imageAsset == null
-                            ? Icon(widget.icon, size: 42, color: Hs.teal)
-                            : Center(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.asset(
-                                    widget.imageAsset!,
-                                    width: 74,
-                                    height: 74,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Icon(
+        curve: Hs.curve,
+        child: AnimatedOpacity(
+          opacity: widget.enabled ? 1 : 0.5,
+          duration: Hs.fast,
+          child: AnimatedContainer(
+            duration: Hs.fast,
+            curve: Hs.curve,
+            decoration: BoxDecoration(
+              color: _hover
+                  ? Color.alphaBlend(accent.withValues(alpha: .08), Hs.surface)
+                  : Hs.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: widget.borderColor == null
+                    ? const Color(0xFFCFCFCF)
+                    : (_hover ? accent : accent.withValues(alpha: .75)),
+                width: widget.borderColor == null ? 1 : 2.5,
+              ),
+              boxShadow: _hover
+                  ? [
+                      BoxShadow(
+                        color: accent.withValues(alpha: .25),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: widget.onTap,
+                  onTapDown: (_) => setState(() => _down = true),
+                  onTapUp: (_) => setState(() => _down = false),
+                  onTapCancel: () => setState(() => _down = false),
+                  hoverColor: accent.withValues(alpha: .06),
+                  splashColor: accent.withValues(alpha: .18),
+                  highlightColor: accent.withValues(alpha: .10),
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 130),
+                    // Slightly tighter than before: the coloured border
+                    // (2.5px vs the old plain 1px) eats a few extra pixels
+                    // of the fixed-height cell a GridView tile gives this,
+                    // and used to overflow by a few pixels there.
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          height: 70,
+                          child: widget.imageAsset == null
+                              ? Icon(widget.icon, size: 42, color: Hs.teal)
+                              : Center(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.asset(
+                                      widget.imageAsset!,
+                                      width: 74,
+                                      height: 74,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Icon(
                                         widget.icon,
                                         size: 42,
-                                        color: Hs.teal),
+                                        color: Hs.teal,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        widget.label,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
-                          letterSpacing: 0.2,
-                          color: Hs.ink,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        Text(
+                          widget.label,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            height: 1.25,
+                            letterSpacing: 0.2,
+                            color: Hs.ink,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
