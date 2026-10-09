@@ -54,7 +54,7 @@ class HsAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
       title: showLogo
           ? Image.asset('assets/images/homesaaz_logo.png',
-              height: 38, fit: BoxFit.contain)
+              height: 38, fit: BoxFit.contain, cacheHeight: 76)
           : Text(title ?? ''),
       actions: [
         ...?actions,

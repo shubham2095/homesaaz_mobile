@@ -22,6 +22,11 @@ import '../../widgets/states.dart';
 /// screen's "Branch-wise Stock Distribution" card header.
 const _infoCyan = Color(0xFF0DCAF0);
 
+/// Display order of the "Branch-wise Stock Distribution" cells after WHQTY.
+const _branchOrder = <String>[
+  'LJP', 'HSD', 'RJC', 'FBD', 'GGN', 'MG', 'KRN', 'LS', 'AV', 'HSN', 'AVWH',
+];
+
 Color? _parseHex(Object? v) {
   final s = '${v ?? ''}'.replaceAll('#', '').trim();
   if (s.length != 6) return null;
@@ -562,7 +567,7 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
     final gst = asNum(r['GST']);
     // Matches web's own client-side formula exactly (not the API's DPEX
     // field): Cost + GST% of Cost.
-    final dpExclusive = acost + acost * ((gst ?? 0) / 100);
+    final dpInclusive = acost + acost * ((gst ?? 0) / 100);
     return _card(
       header: 'Pricing & Discount Details',
       headerColor: Hs.green,
@@ -601,8 +606,10 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
                 decoration: const InputDecoration(isDense: true),
               ),
             ),
+          // `dp_exclusive` is the backend's permission key — it stays as is;
+          // only the label shown to the user is "DP Inclusive".
           if (_can('dp_exclusive'))
-            HsRow('DP Exclusive', '₹ ${dpExclusive.toStringAsFixed(2)}',
+            HsRow('DP Inclusive', '₹ ${dpInclusive.toStringAsFixed(2)}',
                 bottomDivider: true),
           HsRow('GST (%)', gst != null ? gst.toStringAsFixed(2) : '-'),
         ],
@@ -612,8 +619,22 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
 
   Widget _branchCard() {
     final raw = _result?['branchWiseStock'];
-    final entries =
-        raw is Map ? raw.entries.toList() : const <MapEntry<dynamic, dynamic>>[];
+    final entries = [
+      ...(raw is Map ? raw.entries : const <MapEntry<dynamic, dynamic>>[]),
+    ];
+    // Fixed display order (WHQTY is always first, rendered separately
+    // below). Any location not in the list keeps the server's order after
+    // the listed ones, so a newly added branch never silently disappears.
+    int rank(MapEntry<dynamic, dynamic> e) {
+      final i = _branchOrder.indexOf('${e.key}'.trim().toUpperCase());
+      return i < 0 ? _branchOrder.length : i;
+    }
+
+    final position = {for (var i = 0; i < entries.length; i++) entries[i]: i};
+    entries.sort((a, b) {
+      final c = rank(a).compareTo(rank(b));
+      return c != 0 ? c : position[a]!.compareTo(position[b]!);
+    });
     return _card(
       header: 'Branch-wise Stock Distribution',
       headerColor: _infoCyan,

@@ -18,13 +18,16 @@ import '../../widgets/states.dart';
 import 'floor_wise_sales_repository.dart';
 
 const _columns = <HsTableColumn>[
-  HsTableColumn('Gross Amt', width: 95, alignEnd: true),
-  HsTableColumn('Gross (40%+ Disc)', width: 120, alignEnd: true),
+  // Floor (pinned) | Net Amount | Discount | Add. Disc. | Tax | Share | Gross
+  // Amt — Gross sits last so the main figures show first. (The "Gross (40%+
+  // Disc)" column was dropped on request; the Gross Amount summary card
+  // above still includes it, matching the web.)
+  HsTableColumn('Net Amount', width: 105, alignEnd: true),
   HsTableColumn('Discount', width: 95, alignEnd: true),
   HsTableColumn('Add. Disc.', width: 95, alignEnd: true),
   HsTableColumn('Tax', width: 85, alignEnd: true),
-  HsTableColumn('Net Amount', width: 105, alignEnd: true),
   HsTableColumn('Share', width: 90, alignEnd: true),
+  HsTableColumn('Gross Amt', width: 95, alignEnd: true),
 ];
 
 final _apiFmt = DateFormat('yyyy-MM-dd');
@@ -287,13 +290,12 @@ class _FloorWiseSalesScreenState extends ConsumerState<FloorWiseSalesScreen> {
                 const TextStyle(fontWeight: FontWeight.w700, color: Hs.ink, fontSize: 13)),
       ),
       cells: [
-        _amt(row.values['GrossAmt']!),
-        _amt(row.values['GrossAmt1']!),
+        _amt(row.values['NetAmt']!, bold: true),
         _amt(row.values['DisAmount']!),
         _amt(row.values['AddDiscAmt']!),
         _amt(row.values['TaxAmt']!),
-        _amt(row.values['NetAmt']!, bold: true),
         _shareCell(share),
+        _amt(row.values['GrossAmt']!),
       ],
     );
   }
@@ -339,14 +341,13 @@ class _FloorWiseSalesScreenState extends ConsumerState<FloorWiseSalesScreen> {
                 fontWeight: FontWeight.w800, color: Hs.ink, fontSize: 13)),
       ),
       cells: [
-        b(t['GrossAmt'] ?? 0),
-        b(t['GrossAmt1'] ?? 0),
+        b(t['NetAmt'] ?? 0),
         b(t['DisAmount'] ?? 0),
         b(t['AddDiscAmt'] ?? 0),
         b(t['TaxAmt'] ?? 0),
-        b(t['NetAmt'] ?? 0),
         const Text('100%',
             style: TextStyle(fontWeight: FontWeight.w800, color: Hs.ink, fontSize: 11.5)),
+        b(t['GrossAmt'] ?? 0),
       ],
     );
   }

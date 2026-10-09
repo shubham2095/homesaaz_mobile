@@ -1,4 +1,5 @@
 // lib/widgets/hs_drawer.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -64,16 +65,18 @@ class HsDrawer extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Image.asset('assets/images/homesaaz_logo.png',
-                      height: 34, fit: BoxFit.contain),
+                      height: 34, fit: BoxFit.contain, cacheHeight: 68),
                   const SizedBox(height: 14),
                   Row(
                     children: [
                       CircleAvatar(
                         radius: 20,
                         backgroundColor: Hs.teal,
+                        // Cached — the drawer rebuilds on every navigation,
+                        // so a plain NetworkImage would re-fetch constantly.
                         backgroundImage: photo == null
                             ? null
-                            : NetworkImage(photo, headers: null),
+                            : CachedNetworkImageProvider(photo),
                         onBackgroundImageError: photo == null ? null : (_, __) {},
                         child: photo != null
                             ? null

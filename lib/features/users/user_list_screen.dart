@@ -1,4 +1,5 @@
 // lib/features/users/user_list_screen.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -107,8 +108,11 @@ class _UserListScreenState extends ConsumerState<UserListScreen>
                   CircleAvatar(
                     radius: 22,
                     backgroundColor: Hs.teal,
-                    backgroundImage:
-                        u.image != null ? NetworkImage(u.image!) : null,
+                    // Cached between scrolls/refreshes instead of
+                    // re-downloading every photo each time this list loads.
+                    backgroundImage: u.image != null
+                        ? CachedNetworkImageProvider(u.image!)
+                        : null,
                     child: u.image != null
                         ? null
                         : Text(

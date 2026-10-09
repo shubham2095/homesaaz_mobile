@@ -24,10 +24,10 @@ import 'daily_collection_repository.dart';
 
 const _columns = <HsTableColumn>[
   HsTableColumn('Location', width: 110),
+  HsTableColumn('Total Amount', width: 120, alignEnd: true),
   HsTableColumn('Cash', width: 110, alignEnd: true),
   HsTableColumn('Credit Card', width: 110, alignEnd: true),
   HsTableColumn('Cheque', width: 110, alignEnd: true),
-  HsTableColumn('Total Amount', width: 120, alignEnd: true),
   HsTableColumn('Disc %', width: 80, alignEnd: true),
 ];
 
@@ -319,10 +319,10 @@ class _DailyCollectionScreenState
             ),
           ],
         ),
+        _amt(m['TAmount'], bold: true),
         _amt(m['Cash']),
         _amt(m['CreditCard']),
         _amt(m['Cheque']),
-        _amt(m['TAmount'], bold: true),
         _amt(m['DiscPCT'], pct: true),
       ],
     );
@@ -340,10 +340,10 @@ class _DailyCollectionScreenState
         Text('TOTAL ($count)',
             style: const TextStyle(
                 fontWeight: FontWeight.w800, color: Hs.ink, fontSize: 13)),
+        b(t['TAmount']),
         b(t['Cash']),
         b(t['CreditCard']),
         b(t['Cheque']),
-        b(t['TAmount']),
         const Text('-',
             style: TextStyle(fontWeight: FontWeight.w800, color: Hs.ink)),
       ],

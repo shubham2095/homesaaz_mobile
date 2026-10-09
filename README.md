@@ -137,6 +137,8 @@ During the directory review on September 23, 2026:
 
 Configure production signing in `android/app/build.gradle.kts` before distribution. The checked-in release build currently uses debug signing.
 
+Release builds are R8-minified and resource-shrunk (`isMinifyEnabled` / `isShrinkResources` in `android/app/build.gradle.kts`) for a smaller APK and faster install/cold start. If a release build (not debug) ever crashes with a missing-class error that doesn't reproduce in debug, add a keep rule to `android/app/proguard-rules.pro`.
+
 Use a deployed HTTPS API for production. The HTTP default transmits credentials and bearer tokens without transport encryption; update the API and image service configuration as part of release preparation.
 
 ```sh
@@ -168,5 +170,6 @@ After changing launcher icon sources in `assets/icon/`, regenerate them with:
 - Gate Entry without a From date loads only the last 6 months (`_defaultMonthsBack` in `gate_entry_repository.dart`).
 - `lib/features/users/field_permissions_screen.dart` (old DB-table field permissions editor) is no longer used by the User form.
 - Expand tests to cover authentication, pagination, API parsing, and important write workflows.
+- `userAccessProvider` (`lib/features/access/access_provider.dart`) probes each location individually when the backend doesn't return `access.locations` — several extra requests on every app open for a non-admin user. Goes away once the backend adds that field to `GET /dashboard` (see `BACKEND_REVIEW.md` finding 10/11).
 
 Android Gradle configuration disables Kotlin incremental compilation to avoid cross-drive path issues when the project and dependency cache are on different Windows drives.

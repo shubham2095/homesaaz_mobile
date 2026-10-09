@@ -1,6 +1,7 @@
 // lib/features/users/user_form.dart
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -351,10 +352,16 @@ class _UserFormState extends ConsumerState<_UserForm> {
     if (_pickedImage != null) {
       inner = Image.file(File(_pickedImage!.path), fit: BoxFit.cover);
     } else if (_existingImage != null) {
-      inner = Image.network(_existingImage!,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              const Icon(Icons.person, color: Hs.faint));
+      // Cached (not re-downloaded every time this sheet opens) and decoded
+      // straight to this small preview size.
+      inner = CachedNetworkImage(
+        imageUrl: _existingImage!,
+        fit: BoxFit.cover,
+        memCacheWidth: 168,
+        memCacheHeight: 168,
+        errorWidget: (_, __, ___) =>
+            const Icon(Icons.person, color: Hs.faint),
+      );
     } else {
       inner = const Icon(Icons.person, size: 36, color: Hs.faint);
     }

@@ -30,6 +30,18 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // Shrinks + obfuscates unused code and strips unused resources
+            // from the release APK/AAB — smaller download and faster
+            // install/startup. Flutter's own default rules (bundled with
+            // the Flutter Gradle plugin) already keep what the engine and
+            // common plugins need; add to proguard-rules.pro only if a
+            // release build turns out to need extra keep rules.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

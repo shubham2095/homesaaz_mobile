@@ -395,6 +395,13 @@ class _HsGridTileState extends State<HsGridTile> {
                                       width: 74,
                                       height: 74,
                                       fit: BoxFit.cover,
+                                      // Decodes straight to this display
+                                      // size instead of the full JPEG
+                                      // (some of these are 500x500+) —
+                                      // every tile on the dashboard list
+                                      // does this at once, so it matters.
+                                      cacheWidth: 148,
+                                      cacheHeight: 148,
                                       errorBuilder: (_, __, ___) => Icon(
                                         widget.icon,
                                         size: 42,

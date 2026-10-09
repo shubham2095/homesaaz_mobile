@@ -101,6 +101,12 @@ The access system (`app/Services/UserAccessService.php`, `config/user_access.php
 - Location enforcement relies on a `locationID` request parameter. Endpoints that take no location (documents, home stay lists) are not location-filtered. Stock, Item Stock, Daily Collection, Attendance and the GRN/Gate Entry web pages filter by allowed locations or codes; the Gate Entry and GRN API list endpoints depend on the middleware check alone.
 - `profileImage` in the users datatable is built with `asset()`, so its host and port follow `APP_URL` (`http://127.0.0.1:8000` in the archive). A wrong `APP_URL` breaks profile photos for clients; the default avatar is an SVG.
 
+### 11. Low/performance: the location-access gap forces a client-side workaround
+
+Because of the gap in finding 10, the mobile app has no way to ask "which locations can this user see" in one call. It works around this by calling `GET /locations/all` once and then probing it again with each `locationID` in small batches, reading `403` as "not allowed" (`lib/features/access/access_provider.dart`). That is several extra round trips on every app open for a non-admin user, purely to reconstruct information the server already computed once per request. Adding `'access' => UserAccessService::accessForUser($user)` to `DashboardController::dashboard()` (already suggested in finding 10) removes this entirely — the client would read it once from the dashboard response already requested at startup.
+
+Also worth a look while here: `Attendance::getList()` runs its summary and paginated queries as two separate round trips to `EmployeeStatus` on every request (no `Cache::remember`), unlike Daily Collection, Floor Wise Sales and the Gate Entry month cache, which all cache their read-heavy queries. For an "All Locations" load this scans the whole table twice per request; a short-lived cache (e.g. 30-60s, keyed by locationID + today filter) would cut load without going noticeably stale for a live attendance view.
+
 ## Flutter integration
 
 - Login's top-level `token` and `user` response matches the Flutter auth controller. It has no `profileImage`; the app reads it from `/auth/me`, which returns the full user row (bare path such as `uploads/users/x.jpg`).
