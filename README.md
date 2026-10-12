@@ -13,7 +13,7 @@ Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, 
 | Gate Entry | Warehouse and date filters, newest-first list loaded month by month, entry details with totals and PDF download |
 | GRN | Filtered lists, item details and popup, PDF download |
 | Upload Gate Entry Bill | Create, edit, view, approve, reject, and delete bills |
-| Documents | Filtered lists, details, PDF download |
+| Documents | Live per-location document lists (Location, Document Type and date range required, search), line-item detail, letterhead PDF download |
 | Home Stay | Pending rent, student details, bed occupancy, new admission records |
 | Daily Collection | Location-wise cash, credit card and cheque totals with search and grand total |
 | Attendance | Location and status (Present/Absent/Late/All) filters, search, 4 summary cards, paginated employee list |
@@ -166,7 +166,7 @@ After changing launcher icon sources in `assets/icon/`, regenerate them with:
 - Show retryable pagination and stock filter errors.
 - Check widget lifecycle before updating dismissed forms or screens after asynchronous operations.
 - Add a role guard for the users route alongside backend authorization.
-- Home Stay and Document Download rows are not location-filtered (the backend does not filter them either).
+- Home Stay rows are not location-filtered (the backend does not filter them either). Document Download now is: it needs a `locationID`, which the backend's access check covers.
 - Gate Entry without a From date loads only the last 6 months (`_defaultMonthsBack` in `gate_entry_repository.dart`).
 - `lib/features/users/field_permissions_screen.dart` (old DB-table field permissions editor) is no longer used by the User form.
 - Expand tests to cover authentication, pagination, API parsing, and important write workflows.

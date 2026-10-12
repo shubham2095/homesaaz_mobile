@@ -1,4 +1,6 @@
 // lib/core/api_client.dart
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import 'auth_store.dart';
@@ -179,12 +181,31 @@ class ApiClient {
         ),
       );
       if (res.statusCode == 200 && res.data != null) return res.data!;
+      // The server answers errors with a JSON body; because this request
+      // asked for raw bytes, that body arrives as bytes too — decode it so
+      // the real reason shows instead of just the status code.
       throw ApiException(
-        'Download failed (${res.statusCode}).',
+        _bytesMessage(res.data) ?? 'Download failed (${res.statusCode}).',
         statusCode: res.statusCode,
       );
     } on DioException catch (e) {
+      final msg = _bytesMessage(e.response?.data);
+      if (msg != null) {
+        throw ApiException(msg, statusCode: e.response?.statusCode);
+      }
       throw _fromDio(e);
+    }
+  }
+
+  /// `message` (or the first validation error) of a JSON error body that
+  /// was received as bytes; null if it isn't JSON.
+  String? _bytesMessage(Object? data) {
+    if (data is! List<int> || data.isEmpty) return null;
+    try {
+      final j = jsonDecode(utf8.decode(data, allowMalformed: true));
+      return j is Map<String, dynamic> ? _msg(j) : null;
+    } catch (_) {
+      return null;
     }
   }
 

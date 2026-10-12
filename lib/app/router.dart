@@ -116,10 +116,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(path: '/documents', builder: (_, __) => const DocumentListScreen()),
+      // A document is identified by (location, type, key) — the key can
+      // contain slashes, so these travel as query parameters.
       GoRoute(
-        path: '/documents/:id',
-        builder: (_, s) =>
-            DocumentDetailScreen(id: int.parse(s.pathParameters['id']!)),
+        path: '/documents/view',
+        builder: (_, s) => DocumentDetailScreen(
+          locationId: int.tryParse(s.uri.queryParameters['loc'] ?? '') ?? 0,
+          docType: s.uri.queryParameters['type'] ?? '',
+          docKey: s.uri.queryParameters['key'] ?? '',
+        ),
       ),
 
       GoRoute(
