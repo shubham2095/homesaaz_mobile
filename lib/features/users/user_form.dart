@@ -1,7 +1,6 @@
 // lib/features/users/user_form.dart
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show TextInputFormatter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../app/tokens.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../widgets/fallback_network_image.dart';
 import '../../widgets/phone_input_formatter.dart';
 import '../../widgets/states.dart';
 import 'access_editor.dart';
@@ -42,7 +42,7 @@ class _UserFormState extends ConsumerState<_UserForm> {
   // makes picking one required.
   int? _role;
   XFile? _pickedImage;
-  String? _existingImage;
+  List<String> _existingImages = const [];
   AccessSelection _access = AccessSelection();
 
   bool _loading = false;
@@ -81,13 +81,21 @@ class _UserFormState extends ConsumerState<_UserForm> {
       _role = (m['user_role'] is num)
           ? (m['user_role'] as num).toInt()
           : int.tryParse('${m['user_role']}') ?? 0;
-      // GET /users/{id} now resolves this server-side (`profileImageUrl`) —
-      // use it directly, falling back to the bare `profileImage` path only
-      // if an older backend didn't send it.
+      // GET /users/{id} resolves a `profileImageUrl` server-side, but that is
+      // an absolute URL built from the server's own APP_URL (or a fallback
+      // image host), which can point somewhere this phone can't reach. So
+      // every plausible URL is kept, in order, and the preview shows the
+      // first one that loads: the server's URL, the same path on this app's
+      // own API host, and the bare stored path on that host.
       final resolved = m['profileImageUrl'];
-      _existingImage = (resolved is String && resolved.trim().isNotEmpty)
-          ? resolved
-          : profileImageUrl(m['profileImage']);
+      final serverUrl = (resolved is String && resolved.trim().isNotEmpty)
+          ? resolved.trim()
+          : null;
+      _existingImages = {
+        ?serverUrl,
+        ?profileImageUrl(serverUrl),
+        ?profileImageUrl(m['profileImage']),
+      }.toList();
       _access = AccessSelection.fromJson(m['access']);
     } catch (e) {
       _error = '$e';
@@ -360,16 +368,15 @@ class _UserFormState extends ConsumerState<_UserForm> {
     Widget inner;
     if (_pickedImage != null) {
       inner = Image.file(File(_pickedImage!.path), fit: BoxFit.cover);
-    } else if (_existingImage != null) {
-      // Cached (not re-downloaded every time this sheet opens) and decoded
-      // straight to this small preview size.
-      inner = CachedNetworkImage(
-        imageUrl: _existingImage!,
-        fit: BoxFit.cover,
+    } else if (_existingImages.isNotEmpty) {
+      // Cached (not re-downloaded every time this sheet opens), decoded
+      // straight to this small preview size, and falling back through the
+      // candidate URLs.
+      inner = FallbackNetworkImage(
+        urls: _existingImages,
         memCacheWidth: 168,
         memCacheHeight: 168,
-        errorWidget: (_, __, ___) =>
-            const Icon(Icons.person, color: Hs.faint),
+        fallback: const Icon(Icons.person, size: 36, color: Hs.faint),
       );
     } else {
       inner = const Icon(Icons.person, size: 36, color: Hs.faint);

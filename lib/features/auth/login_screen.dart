@@ -17,9 +17,12 @@ import '../../app/tokens.dart';
 import '../../widgets/phone_input_formatter.dart';
 import 'auth_controller.dart';
 
-/// Backend OTP length / resend gap (config/auth_otp.php).
+/// Backend OTP length / validity / resend gap (config/auth_otp.php:
+/// `otp_length`, `otp_ttl_minutes`, `resend_seconds`). The resend timer must
+/// not be shorter than the server's gap, or "Resend" just gets refused.
 const _otpLength = 6;
-const _resendSeconds = 30;
+const _otpValidMinutes = 1;
+const _resendSeconds = 60;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -39,9 +42,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _verifying = false;
   int _cooldown = 0;
   Timer? _timer;
-
-  /// Set only while the server is in OTP TEST MODE (SMS not live yet).
-  String? _debugOtp;
 
   @override
   void initState() {
@@ -96,12 +96,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     _otp.clear();
-    setState(() {
-      _otpSent = true;
-      _debugOtp = res.debugOtp;
-    });
+    setState(() => _otpSent = true);
     _startCooldown();
-    _snack('OTP sent to your mobile number.');
+    // The server's own wording: for a number that isn't registered it says
+    // "If this number is registered, an OTP has been sent." (it never
+    // reveals which numbers have accounts).
+    _snack(res.message ?? 'OTP sent to your mobile number.');
   }
 
   Future<void> _verify() async {
@@ -134,46 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() {
       _otpSent = false;
       _cooldown = 0;
-      _debugOtp = null;
     });
-  }
-
-  /// Web's "TEST MODE (local only): OTP = …" box. Tap it to fill the field.
-  Widget _debugOtpBanner(String otp) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => _otp.text = otp,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF3CD),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE7D977)),
-          ),
-          child: Text.rich(
-            TextSpan(
-              style: const TextStyle(fontSize: 13, color: Hs.ink),
-              children: [
-                const TextSpan(
-                    text: 'TEST MODE: ',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
-                const TextSpan(text: 'OTP = '),
-                TextSpan(
-                    text: otp,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, letterSpacing: 1)),
-                const TextSpan(
-                    text: '  (tap to fill)',
-                    style: TextStyle(fontSize: 11.5, color: Hs.muted)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   InputDecoration _fieldDecoration() => InputDecoration(
@@ -365,8 +326,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(height: 10),
         Text('OTP sent to $masked',
             style: const TextStyle(fontSize: 13, color: Hs.inkSoft)),
+        const SizedBox(height: 2),
+        const Text('Valid for $_otpValidMinutes minute',
+            style: TextStyle(fontSize: 12, color: Hs.muted)),
         const SizedBox(height: 14),
-        if (_debugOtp != null) _debugOtpBanner(_debugOtp!),
         _label('OTP'),
         TextField(
           controller: _otp,
@@ -380,10 +343,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           style: const TextStyle(
               fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 10),
           decoration: _fieldDecoration().copyWith(counterText: ''),
-          onChanged: (v) {
-            // Log in as soon as the last digit is typed / auto-filled.
-            if (v.length == _otpLength) _verify();
-          },
+          // Logs in only when the person presses LOGIN (or the keyboard's
+          // Done key) — not as soon as the 6th digit is typed.
           onSubmitted: (_) => _verify(),
         ),
         const SizedBox(height: 20),

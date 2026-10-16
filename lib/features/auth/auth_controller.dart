@@ -70,28 +70,28 @@ class AuthController extends Notifier<AuthState> {
   /// Login is mobile number + SMS OTP (the old name/password login is gone
   /// from the API).
   ///
-  /// Step 1 — POST /auth/otp/send { phone }. `error` is null when the OTP
-  /// was sent, otherwise the message to show. The server answers the same
-  /// way whether or not the number is registered, so success only means
-  /// "sent if it exists".
-  ///
-  /// `debugOtp` is the server's TEST MODE: while its SMS template isn't
-  /// approved, a server running with AUTH_OTP_DEBUG_SHOW returns the OTP in
-  /// the response (`debug_otp`) so login can still be tested. It is absent
-  /// on a live server, and the login screen only shows it when present.
-  Future<({String? error, String? debugOtp})> sendOtp(String phone) async {
+  /// Step 1 — POST /auth/otp/send { phone }. `error` is null when the
+  /// request went through, otherwise the message to show; `message` is the
+  /// server's own wording on success. The server answers the same way
+  /// whether or not the number is registered ("If this number is
+  /// registered, an OTP has been sent."), so success only means "sent if it
+  /// exists" — the SMS is the real confirmation.
+  Future<({String? error, String? message})> sendOtp(String phone) async {
     try {
       final body = await ref
           .read(apiClientProvider)
           .postRaw('/auth/otp/send', body: {'phone': phone});
-      final d = body['debug_otp'];
-      return (error: null, debugOtp: d == null ? null : '$d');
+      final m = body['message'];
+      return (
+        error: null,
+        message: m is String && m.trim().isNotEmpty ? m : null,
+      );
     } on ApiException catch (e) {
-      return (error: e.message, debugOtp: null);
+      return (error: e.message, message: null);
     } catch (_) {
       return (
         error: 'Could not send the OTP. Please try again.',
-        debugOtp: null,
+        message: null,
       );
     }
   }
