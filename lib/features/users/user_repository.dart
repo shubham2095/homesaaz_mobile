@@ -15,6 +15,7 @@ class UserRow {
   String get lastName => (raw['LastName'] ?? '').toString();
   String get name => '$firstName $lastName'.trim();
   String get email => (raw['EmailID'] ?? '').toString();
+  String get mobile => (raw['MobileNo'] ?? '').toString();
   int get role => asInt(raw['user_role']) ?? 0;
   bool get isAdmin => role == 1;
   String get roleLabel =>
@@ -164,15 +165,18 @@ class UserRepository {
     int? id,
     required String firstName,
     required String lastName,
+    required String mobile,
     required String email,
     required int role,
-    String? password,
     String? imagePath,
     AccessSelection? access,
   }) async {
     final fields = <String, dynamic>{
       'FirstName': firstName,
       'LastName': lastName,
+      // Login is mobile number + OTP now, and the number must be unique —
+      // the server rejects a number another user already has.
+      'MobileNo': mobile,
       // Email is optional on the backend now — omit the key entirely when
       // blank rather than sending an empty string, so its `nullable|email`
       // rule doesn't reject an empty value as a badly-formed one.
@@ -181,7 +185,6 @@ class UserRepository {
       'IsActive': 1,
       'ID': ?id,
     };
-    if ((password ?? '').isNotEmpty) fields['Pwd'] = password;
     // Admins always have full access, so their grants are left untouched.
     // `access_submitted` tells the backend to replace the stored grants —
     // that is how un-ticking everything is saved.

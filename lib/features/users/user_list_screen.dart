@@ -149,6 +149,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen>
               // Order mirrors web's `.user-card` (user/list.blade.php
               // renderCards): Name [title], Email, Role, Image [avatar
               // above], Action [icons above].
+              HsRow('Mobile', u.mobile.isEmpty ? '-' : u.mobile,
+                  bottomDivider: true),
               HsRow('Email', u.email, bottomDivider: true),
               HsRow(
                 'Role',

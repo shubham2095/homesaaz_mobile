@@ -67,23 +67,50 @@ class AuthController extends Notifier<AuthState> {
   bool _busy = false;
   bool get busy => _busy;
 
-  Future<bool> login({
-    required String firstname,
-    required String password,
-    String deviceName = 'android',
-  }) async {
+  /// Login is mobile number + SMS OTP (the old name/password login is gone
+  /// from the API).
+  ///
+  /// Step 1 — POST /auth/otp/send { phone }. `error` is null when the OTP
+  /// was sent, otherwise the message to show. The server answers the same
+  /// way whether or not the number is registered, so success only means
+  /// "sent if it exists".
+  ///
+  /// `debugOtp` is the server's TEST MODE: while its SMS template isn't
+  /// approved, a server running with AUTH_OTP_DEBUG_SHOW returns the OTP in
+  /// the response (`debug_otp`) so login can still be tested. It is absent
+  /// on a live server, and the login screen only shows it when present.
+  Future<({String? error, String? debugOtp})> sendOtp(String phone) async {
+    try {
+      final body = await ref
+          .read(apiClientProvider)
+          .postRaw('/auth/otp/send', body: {'phone': phone});
+      final d = body['debug_otp'];
+      return (error: null, debugOtp: d == null ? null : '$d');
+    } on ApiException catch (e) {
+      return (error: e.message, debugOtp: null);
+    } catch (_) {
+      return (
+        error: 'Could not send the OTP. Please try again.',
+        debugOtp: null,
+      );
+    }
+  }
+
+  /// Step 2 — POST /auth/otp/verify { phone, otp }. On success the token and
+  /// user are stored and the router takes over; on failure [AuthState.error]
+  /// holds the message (wrong / expired OTP, too many attempts).
+  ///
+  /// The server keeps only ONE active login per user: this revokes the
+  /// token of any other device, which then gets a 401 and is signed out.
+  Future<bool> verifyOtp({required String phone, required String otp}) async {
     if (_busy) return false;
     _busy = true;
     state = state.copyWith(error: null);
     try {
-      // Laravel expects { FirstName, Pwd } and returns token + user at the
-      // top level (not wrapped in `data`).
+      // Returns token + user at the top level (not wrapped in `data`).
       final body = await ref.read(apiClientProvider).postRaw(
-        '/auth/login',
-        body: {
-          'FirstName': firstname,
-          'Pwd': password,
-        },
+        '/auth/otp/verify',
+        body: {'phone': phone, 'otp': otp},
       );
       final token = body['token'] as String;
       final user = AuthUser.fromJson((body['user'] as Map).cast<String, dynamic>());
@@ -128,9 +155,15 @@ class AuthController extends Notifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
-  /// Called by the API client when any request comes back 401.
+  /// Called by the API client when any request comes back 401. With the
+  /// one-login-per-user rule that is also what happens when the same number
+  /// logs in on another phone or on the web, so say so on the login screen.
   Future<void> forceLogout() async {
     await _store.clear();
-    state = const AuthState(status: AuthStatus.unauthenticated);
+    state = const AuthState(
+      status: AuthStatus.unauthenticated,
+      error: 'You have been signed out. If your number was used to log in '
+          'on another device, only that device stays logged in.',
+    );
   }
 }

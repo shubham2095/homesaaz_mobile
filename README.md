@@ -6,7 +6,7 @@ Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, 
 
 | Module | Available functionality |
 | --- | --- |
-| Authentication | Login, cached profile and profile photo, secure token storage, logout, authenticated navigation |
+| Authentication | Mobile number + SMS OTP login (resend timer, one active login per user), cached profile and profile photo, secure token storage, logout, authenticated navigation |
 | Dashboard | Tiles for the modules granted to the signed-in user (admins see all) |
 | All Stock Details | Search, filters, paginated tables, item details, images |
 | Item Stock | Item lookup, branch stock distribution, image upload, MRP and discount updates, PDF download; fields shown follow the user's Field Access |
@@ -19,7 +19,7 @@ Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, 
 | Attendance | Location and status (Present/Absent/Late/All) filters, search, 4 summary cards, paginated employee list |
 | Floor Wise Sales | Required Location + date range filters, 4 summary cards, floor-wise breakdown with a Share bar and grand total |
 | Locations | List, create, edit, and delete locations |
-| Users | User management with profile photo and access control (modules, per-module fields, locations); navigation is shown to admins |
+| Users | User management (mobile number is the login, unique per user) with profile photo and access control (modules, per-module fields, locations); navigation is shown to admins |
 
 Pearl Stay is a dashboard placeholder showing **Coming soon** — unlike the others, it has no backend endpoint yet. Only the Android platform project is included. The app uses a light theme.
 
@@ -38,7 +38,7 @@ Admins always have full access and their grants are never overwritten from the a
 - Flutter SDK with Dart compatible with `^3.12.2`, as specified in `pubspec.yaml`.
 - Android SDK and a compatible Java 17 environment for Android builds.
 - Android emulator or physical Android device.
-- Access to the HomeSaaz API and a valid staff account.
+- Access to the HomeSaaz API and a staff account with a registered mobile number (login is by SMS OTP; there is no password).
 
 ## Getting started
 

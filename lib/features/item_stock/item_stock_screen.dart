@@ -641,69 +641,91 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
       child: entries.isEmpty
           ? const Text('No stock distribution fields found',
               style: TextStyle(color: Hs.muted))
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  // Web shows warehouse quantity (HSStock.WHQTY) as its own
-                  // plain (uncoloured) leading column, ahead of the
-                  // per-location colour-coded ones.
-                  _branchCell('WHQTY', asNum(_result?['WHQTY']) ?? 0),
-                  for (var i = 0; i < entries.length; i++) ...[
-                    const SizedBox(width: 6),
-                    _branchCell('${entries[i].key}', asNum(entries[i].value) ?? 0),
-                  ],
-                ],
-              ),
-            ),
+          : _branchTable([
+              // Web shows warehouse quantity (HSStock.WHQTY) as its own
+              // plain (uncoloured) first row, ahead of the per-location
+              // colour-coded ones.
+              ('WHQTY', asNum(_result?['WHQTY']) ?? 0),
+              for (final e in entries) ('${e.key}', asNum(e.value) ?? 0),
+            ]),
     );
   }
 
-  Widget _branchCell(String code, num qty) {
-    final bg = _locationColors[code];
-    final on = bg == null
-        ? Hs.ink
-        : (bg.computeLuminance() < 0.5 ? Colors.white : Colors.black);
-    return SizedBox(
-      width: 66,
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 6),
+  /// Branch | Stock table: one row per location, the branch name in its own
+  /// colour (as the old column headers were), quantities right-aligned.
+  Widget _branchTable(List<(String code, num qty)> rows) {
+    Widget head(String t, {bool end = false}) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Text(t,
+              textAlign: end ? TextAlign.end : TextAlign.start,
+              style: const TextStyle(
+                  fontSize: 12.5, fontWeight: FontWeight.w700, color: Hs.ink)),
+        );
+
+    Widget branch(String code) {
+      final bg = _locationColors[code];
+      final on = bg == null
+          ? Hs.ink
+          : (bg.computeLuminance() < 0.5 ? Colors.white : Colors.black);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: bg ?? Hs.hairline,
+              borderRadius: BorderRadius.circular(4),
               border: Border.all(color: Hs.border),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
             ),
-            child: Text(
-              code,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5, color: on),
-            ),
+            child: Text(code,
+                style: TextStyle(
+                    fontWeight: FontWeight.w700, fontSize: 12.5, color: on)),
           ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              border: Border.all(color: Hs.border),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
-            ),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration:
-                    BoxDecoration(color: Hs.muted, borderRadius: BorderRadius.circular(4)),
-                child: Text(
-                  qty.toStringAsFixed(2),
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
+        ),
+      );
+    }
+
+    Widget qty(num v) {
+      final text = v.toStringAsFixed(2);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Text(text,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: v == 0 ? FontWeight.w400 : FontWeight.w700,
+                color: v < 0 ? Hs.brandRed : (v == 0 ? Hs.faint : Hs.ink))),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Hs.radiusSm),
+        border: Border.all(color: Hs.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Table(
+        columnWidths: const {
+          0: FlexColumnWidth(3),
+          1: FlexColumnWidth(2),
+        },
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        border: const TableBorder(
+          horizontalInside: BorderSide(color: Hs.hairline),
+          verticalInside: BorderSide(color: Hs.hairline),
+        ),
+        children: [
+          TableRow(
+            decoration: const BoxDecoration(color: Color(0xFFF8F9FA)),
+            children: [head('Branch'), head('Stock Qty', end: true)],
           ),
+          for (var i = 0; i < rows.length; i++)
+            TableRow(
+              decoration: BoxDecoration(
+                  color: i.isOdd ? const Color(0xFFFBFBFD) : Hs.surface),
+              children: [branch(rows[i].$1), qty(rows[i].$2)],
+            ),
         ],
       ),
     );

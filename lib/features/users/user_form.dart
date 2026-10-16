@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show TextInputFormatter;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/tokens.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../widgets/phone_input_formatter.dart';
 import '../../widgets/states.dart';
 import 'access_editor.dart';
 import 'user_repository.dart';
@@ -34,8 +36,8 @@ class _UserFormState extends ConsumerState<_UserForm> {
   final _formKey = GlobalKey<FormState>();
   final _first = TextEditingController();
   final _last = TextEditingController();
+  final _mobile = TextEditingController();
   final _email = TextEditingController();
-  final _pwd = TextEditingController();
   // null = not chosen yet — the web form has no default role either, and
   // makes picking one required.
   int? _role;
@@ -59,8 +61,8 @@ class _UserFormState extends ConsumerState<_UserForm> {
   void dispose() {
     _first.dispose();
     _last.dispose();
+    _mobile.dispose();
     _email.dispose();
-    _pwd.dispose();
     super.dispose();
   }
 
@@ -71,6 +73,11 @@ class _UserFormState extends ConsumerState<_UserForm> {
       _first.text = '${m['FirstName'] ?? ''}';
       _last.text = '${m['LastName'] ?? ''}';
       _email.text = '${m['EmailID'] ?? ''}';
+      // Stored numbers may carry +91 / spaces; the field holds the last 10
+      // digits, same as the server compares them.
+      final digits = '${m['MobileNo'] ?? ''}'.replaceAll(RegExp(r'\D+'), '');
+      _mobile.text =
+          digits.length > 10 ? digits.substring(digits.length - 10) : digits;
       _role = (m['user_role'] is num)
           ? (m['user_role'] as num).toInt()
           : int.tryParse('${m['user_role']}') ?? 0;
@@ -113,11 +120,11 @@ class _UserFormState extends ConsumerState<_UserForm> {
             id: widget.userId,
             firstName: _first.text.trim(),
             lastName: _last.text.trim(),
+            mobile: _mobile.text.trim(),
             email: _email.text.trim(),
             // The Role field's own validator already blocked submission
             // while this was null.
             role: _role!,
-            password: _pwd.text,
             imagePath: _pickedImage?.path,
             access: _access,
           );
@@ -192,6 +199,18 @@ class _UserFormState extends ConsumerState<_UserForm> {
                       const SizedBox(height: 12),
                       _field(_last, 'Last Name', validator: _required),
                       const SizedBox(height: 12),
+                      // Login is mobile number + OTP now (no password), so
+                      // this number is what the person logs in with.
+                      _field(_mobile, 'Mobile Number',
+                          keyboard: TextInputType.phone,
+                          hint: '10-digit mobile number',
+                          helper: 'Used to log in with an OTP.',
+                          formatters: [PhoneInputFormatter()],
+                          validator: (v) =>
+                              RegExp(r'^[6-9]\d{9}$').hasMatch(v ?? '')
+                                  ? null
+                                  : 'Enter a valid 10-digit mobile number'),
+                      const SizedBox(height: 12),
                       _field(_email, 'Email (Optional)',
                           keyboard: TextInputType.emailAddress,
                           hint: 'name@example.com', validator: (v) {
@@ -199,16 +218,6 @@ class _UserFormState extends ConsumerState<_UserForm> {
                         if (t.isEmpty) return null;
                         final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+').hasMatch(t);
                         return ok ? null : 'Enter a valid email';
-                      }),
-                      const SizedBox(height: 12),
-                      _field(_pwd, 'Password',
-                          obscure: true,
-                          helper: _isEdit
-                              ? 'Leave blank to keep current'
-                              : 'Minimum 4 characters', validator: (v) {
-                        if (_isEdit && (v ?? '').isEmpty) return null;
-                        if ((v ?? '').length < 4) return 'Minimum 4 characters';
-                        return null;
                       }),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<int>(
@@ -332,14 +341,14 @@ class _UserFormState extends ConsumerState<_UserForm> {
     String label, {
     String? Function(String?)? validator,
     TextInputType? keyboard,
-    bool obscure = false,
     String? helper,
     String? hint,
+    List<TextInputFormatter>? formatters,
   }) {
     return TextFormField(
       controller: c,
       keyboardType: keyboard,
-      obscureText: obscure,
+      inputFormatters: formatters,
       validator: validator,
       decoration: InputDecoration(
           labelText: label, helperText: helper, hintText: hint),
