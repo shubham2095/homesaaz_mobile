@@ -176,10 +176,15 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
       drawer: const HsDrawer(),
       appBar: const HsAppBar(title: 'Document Download'),
       body: !canQuery
-          ? Column(
+          // Scrollable: with the Doc No box in the panel, the keyboard
+          // shrinks this area, and a fixed Column overflowed by a few pixels.
+          ? ListView(
+              keyboardDismissBehavior:
+                  ScrollViewKeyboardDismissBehavior.onDrag,
               children: [
                 _filterPanel(locations, types),
-                const Expanded(
+                const SizedBox(
+                  height: 260,
                   child: EmptyView(
                       message: 'Please select Location and Document Type '
                           'to load documents.'),
