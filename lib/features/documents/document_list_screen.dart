@@ -5,8 +5,6 @@
 // that location's own database), search, then a paginated table whose
 // columns come from the chosen document type's query. Tapping a Doc No
 // downloads its PDF (like the web); View opens the line-item detail.
-import 'dart:async';
-
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,17 +49,19 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
   DateTime? _appliedTo;
 
   final _hScroll = LinkedScrollControllerGroup();
-  final _searchCtrl = TextEditingController();
-  String _search = '';
-  Timer? _debounce;
+
+  // The web's "DOC NO" filter box — applied with the rest of the filters
+  // (Apply Filter / the keyboard's Done key). The server matches it against
+  // the document number (and the party name).
+  final _docNoCtrl = TextEditingController();
+  String _appliedDocNo = '';
 
   // Table columns of the applied doc type, from the first page's rows.
   List<String> _cols = const [];
 
   @override
   void dispose() {
-    _debounce?.cancel();
-    _searchCtrl.dispose();
+    _docNoCtrl.dispose();
     super.dispose();
   }
 
@@ -69,34 +69,28 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(m)));
 
-  void _onSearchChanged(String v) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 450), () {
-      setState(() {
-        _search = v.trim();
-        resetFooter();
-      });
-    });
-  }
+  bool get _canApply => _locationId != null && _docType != null;
 
   void _apply() {
+    if (!_canApply) return;
     if (_to.isBefore(_from)) {
       _snack('To Date cannot be before From Date.');
       return;
     }
+    FocusScope.of(context).unfocus();
     setState(() {
       _appliedLocationId = _locationId;
       _appliedDocType = _docType;
       _appliedFrom = _from;
       _appliedTo = _to;
+      _appliedDocNo = _docNoCtrl.text.trim();
       _cols = const [];
       resetFooter();
     });
   }
 
   void _reset() {
-    _debounce?.cancel();
-    _searchCtrl.clear();
+    _docNoCtrl.clear();
     final now = DateTime.now();
     setState(() {
       _locationId = null;
@@ -108,7 +102,7 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
       _appliedFrom = null;
       _appliedTo = null;
       _cols = const [];
-      _search = '';
+      _appliedDocNo = '';
       resetFooter();
     });
   }
@@ -129,7 +123,7 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
   Future<PagedResponse<Map<String, dynamic>>> _fetch(int page, String _) {
     return ref.read(documentRepositoryProvider).list(
           page,
-          _search,
+          _appliedDocNo,
           locationId: _appliedLocationId!,
           docType: _appliedDocType!,
           fromDate: _apiFmt.format(_appliedFrom!),
@@ -196,7 +190,7 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
               children: [
                 Expanded(
                   child: PagedListView<Map<String, dynamic>>(
-                    key: ValueKey('$signature|$_search'),
+                    key: ValueKey('$signature|$_appliedDocNo'),
                     searchable: false,
                     padding: EdgeInsets.zero,
                     separator: const SizedBox.shrink(),
@@ -206,7 +200,6 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
                     header: Column(
                       children: [
                         _filterPanel(locations, types),
-                        _searchField(),
                         if (_cols.isNotEmpty)
                           HsTableHeader(
                             columns: _tableColumns(_cols),
@@ -291,28 +284,26 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
     );
   }
 
-  Widget _searchField() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      child: TextField(
-        controller: _searchCtrl,
-        onChanged: _onSearchChanged,
-        textInputAction: TextInputAction.search,
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          hintText: 'Search doc no or party…',
-          prefixIcon: const Icon(Icons.search, size: 20, color: Hs.muted),
-          prefixIconConstraints:
-              const BoxConstraints(minWidth: 42, minHeight: 42),
-          suffixIcon: _searchCtrl.text.isEmpty
-              ? null
+  /// Web's "DOC NO" box: part of the filter panel, applied with the rest.
+  Widget _docNoField() {
+    return TextField(
+      controller: _docNoCtrl,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => _apply(),
+      style: const TextStyle(fontSize: 14),
+      decoration: InputDecoration(
+        hintText: 'Enter Doc No…',
+        prefixIcon: const Icon(Icons.search, size: 20, color: Hs.muted),
+        prefixIconConstraints:
+            const BoxConstraints(minWidth: 42, minHeight: 42),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _docNoCtrl,
+          builder: (_, v, __) => v.text.isEmpty
+              ? const SizedBox.shrink()
               : IconButton(
                   icon: const Icon(Icons.close, size: 18),
                   splashRadius: 18,
-                  onPressed: () {
-                    _searchCtrl.clear();
-                    _onSearchChanged('');
-                  },
+                  onPressed: _docNoCtrl.clear,
                 ),
         ),
       ),
@@ -383,12 +374,15 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
             ],
           ),
           const SizedBox(height: 12),
+          _label('DOC NO'),
+          const SizedBox(height: 6),
+          _docNoField(),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed:
-                      (_locationId == null || _docType == null) ? null : _apply,
+                  onPressed: _canApply ? _apply : null,
                   icon: const Icon(Icons.filter_alt_outlined, size: 18),
                   label: const Text('Apply Filter'),
                 ),
