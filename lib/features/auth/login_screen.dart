@@ -17,11 +17,12 @@ import '../../app/tokens.dart';
 import '../../widgets/phone_input_formatter.dart';
 import 'auth_controller.dart';
 
-/// Backend OTP length / validity / resend gap (config/auth_otp.php:
-/// `otp_length`, `otp_ttl_minutes`, `resend_seconds`). The resend timer must
-/// not be shorter than the server's gap, or "Resend" just gets refused.
+/// Backend OTP length / resend gap (config/auth_otp.php: `otp_length`,
+/// `resend_seconds`). The resend timer must not be shorter than the server's
+/// gap, or "Resend" just gets refused. (The OTP's validity isn't shown: the
+/// server's `otp_ttl_minutes` and the SMS text — which is fixed by the DLT
+/// template — don't have to agree, and a wrong number here would mislead.)
 const _otpLength = 6;
-const _otpValidMinutes = 1;
 const _resendSeconds = 60;
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -327,7 +328,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Text('OTP sent to $masked',
             style: const TextStyle(fontSize: 13, color: Hs.inkSoft)),
         const SizedBox(height: 2),
-        const Text('Valid for $_otpValidMinutes minute',
+        const Text('Enter the OTP from the SMS',
             style: TextStyle(fontSize: 12, color: Hs.muted)),
         const SizedBox(height: 14),
         _label('OTP'),

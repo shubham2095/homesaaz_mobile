@@ -10,17 +10,31 @@ class UserRow {
   UserRow(this.raw);
   final Map<String, dynamic> raw;
 
+  /// The datatable fills every empty column with a literal "-"; treat that as
+  /// empty so the UI can hide it instead of showing a stray dash.
+  static String _text(Object? v) {
+    final s = (v ?? '').toString().trim();
+    return s == '-' ? '' : s;
+  }
+
   int get id => asInt(raw['ID']) ?? 0;
-  String get firstName => (raw['FirstName'] ?? '').toString();
-  String get lastName => (raw['LastName'] ?? '').toString();
+  String get firstName => _text(raw['FirstName']);
+  String get lastName => _text(raw['LastName']);
   String get name => '$firstName $lastName'.trim();
-  String get email => (raw['EmailID'] ?? '').toString();
-  String get mobile => (raw['MobileNo'] ?? '').toString();
+  String get email => _text(raw['EmailID']);
+  String get mobile => _text(raw['MobileNo']);
   int get role => asInt(raw['user_role']) ?? 0;
   bool get isAdmin => role == 1;
   String get roleLabel =>
       (raw['Role'] ?? (isAdmin ? 'Admin' : 'User')).toString();
   String? get image => profileImageUrl(raw['profileImage']);
+
+  /// True when every word in [tokens] (already lower-case) appears somewhere
+  /// in the name, mobile number, email or role.
+  bool matches(List<String> tokens) {
+    final haystack = '$name $mobile $email $roleLabel'.toLowerCase();
+    return tokens.every(haystack.contains);
+  }
 
   factory UserRow.fromJson(Map<String, dynamic> j) => UserRow(j);
 }
@@ -48,33 +62,54 @@ class AccessLocation {
 }
 
 /// One user's grants, as edited on the form.
+///
+/// Location access is PER MODULE ([moduleLocations]: module slug -> location
+/// ids): inside a module the user only sees that module's locations, and a
+/// ticked module with none shows no data.
 class AccessSelection {
   AccessSelection({
     Set<String>? modules,
     Map<String, Set<String>>? fields,
-    Set<int>? locations,
+    Map<String, Set<int>>? moduleLocations,
   })  : modules = modules ?? {},
         fields = fields ?? {},
-        locations = locations ?? {};
+        moduleLocations = moduleLocations ?? {};
 
   final Set<String> modules;
   final Map<String, Set<String>> fields;
-  final Set<int> locations;
+  final Map<String, Set<int>> moduleLocations;
 
   /// From `access` in GET /users/{id}.
+  ///
+  /// `access.module_locations` is the new per-module list. `access.locations`
+  /// is the OLD global list that used to apply to every module; the server
+  /// can no longer save it, so (like the web form) it is folded into each
+  /// module's own list here — saving then migrates it instead of dropping it.
   factory AccessSelection.fromJson(Object? j) {
     if (j is! Map) return AccessSelection();
     final f = j['fields'];
+    final ml = j['module_locations'];
+    Set<int> ids(Object? v) => {
+          for (final x in (v as List?) ?? const [])
+            if (asInt(x) != null) asInt(x)!,
+        };
+
+    final legacy = ids(j['locations']);
+    final modules =
+        ((j['modules'] as List?) ?? const []).map((e) => '$e').toSet();
     return AccessSelection(
-      modules: ((j['modules'] as List?) ?? const []).map((e) => '$e').toSet(),
+      modules: modules,
       fields: {
         if (f is Map)
           for (final e in f.entries)
             '${e.key}': ((e.value as List?) ?? const []).map((x) => '$x').toSet(),
       },
-      locations: {
-        for (final v in (j['locations'] as List?) ?? const [])
-          if (asInt(v) != null) asInt(v)!,
+      moduleLocations: {
+        for (final m in modules)
+          m: {
+            ...ids(ml is Map ? ml[m] : null),
+            ...legacy,
+          },
       },
     );
   }
@@ -86,15 +121,51 @@ class UserRepository {
   UserRepository(this.ref);
   final Ref ref;
 
-  Future<PagedResponse<UserRow>> list(int page, String search) async {
+  /// The server caps one datatable request at 100 rows.
+  static const _batch = 100;
+
+  Future<PagedResponse<UserRow>> _fetch(int page, int perPage) async {
     final body = await ref.read(apiClientProvider).listRaw(
           '/users/datatable',
           page: page,
-          perPage: AppConfig.pageSize,
-          search: search,
+          perPage: perPage,
         );
     return PagedResponse.parse(body, UserRow.fromJson,
-        page: page, perPage: AppConfig.pageSize);
+        page: page, perPage: perPage);
+  }
+
+  /// The user list, with a search done HERE rather than by the server: the
+  /// server only LIKE-matches FirstName, LastName and EmailID one by one, so a
+  /// full name ("Renu Chopra"), a mobile number or a role ("admin") — all of
+  /// which the search box promises — would find nothing. A search therefore
+  /// loads every user (there are only a handful) and filters them.
+  Future<PagedResponse<UserRow>> list(int page, String search) async {
+    final words = search.trim().toLowerCase().split(RegExp(r'\s+'));
+    if (words.length == 1 && words.single.isEmpty) {
+      return _fetch(page, AppConfig.pageSize);
+    }
+
+    final all = <UserRow>[];
+    for (var p = 1; p <= 50; p++) {
+      final res = await _fetch(p, _batch);
+      all.addAll(res.items);
+      if (!res.meta.hasMore || res.items.isEmpty) break;
+    }
+    final hits = [
+      for (final u in all)
+        if (u.matches(words)) u,
+    ];
+
+    const size = AppConfig.pageSize;
+    return PagedResponse(
+      items: hits.skip((page - 1) * size).take(size).toList(),
+      meta: PageMeta(
+        page: page,
+        perPage: size,
+        total: hits.length,
+        lastPage: hits.isEmpty ? 1 : (hits.length / size).ceil(),
+      ),
+    );
   }
 
   /// GET /users/access-options -> modules (+ fields) and locations.
@@ -196,7 +267,13 @@ class UserRepository {
           if (access.modules.contains(e.key) && e.value.isNotEmpty)
             e.key: e.value.toList(),
       };
-      fields['access_locations'] = access.locations.map((e) => '$e').toList();
+      // Locations are per module now (`access_locations[]` is ignored by the
+      // server): only ticked modules are sent, each with its own list.
+      fields['access_module_locations'] = {
+        for (final m in access.modules)
+          if ((access.moduleLocations[m] ?? const <int>{}).isNotEmpty)
+            m: access.moduleLocations[m]!.map((e) => '$e').toList(),
+      };
     }
     await ref.read(apiClientProvider).postForm(
           '/users/save',

@@ -1,17 +1,18 @@
 // lib/features/users/user_list_screen.dart
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/tokens.dart';
 import '../../core/api_client.dart';
 import '../auth/auth_controller.dart';
+import '../../widgets/fallback_network_image.dart';
 import '../../widgets/hs_app_bar.dart';
 import '../../widgets/hs_dialog.dart';
 import '../../widgets/hs_drawer.dart';
 import '../../widgets/hs_widgets.dart';
 import '../../widgets/paged_footer_mixin.dart';
 import '../../widgets/paged_list_view.dart';
+import '../../widgets/phone_link.dart';
 import 'user_form.dart';
 import 'user_repository.dart';
 
@@ -96,93 +97,261 @@ class _UserListScreenState extends ConsumerState<UserListScreen>
           Expanded(
             child: PagedListView<UserRow>(
               key: ValueKey(_reload),
-              searchHint: 'Search by name, email or role…',
+              searchHint: 'Search by name, mobile, email or role…',
+              // Bottom clearance for the "Add User" FAB, which otherwise
+              // sits on top of the last card.
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 96),
               fetchPage: repo.list,
               onPageLoaded: trackPage,
-              itemBuilder: (context, u) => HsListCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Hs.teal,
-                    // Cached between scrolls/refreshes instead of
-                    // re-downloading every photo each time this list loads.
-                    backgroundImage: u.image != null
-                        ? CachedNetworkImageProvider(u.image!)
-                        : null,
-                    child: u.image != null
-                        ? null
-                        : Text(
-                            u.name.isEmpty ? '?' : u.name[0].toUpperCase(),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(u.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Hs.ink)),
-                  ),
-                  IconButton(
-                    tooltip: 'Edit',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.edit_outlined,
-                        size: 20, color: Hs.blue),
-                    onPressed: () => _edit(u),
-                  ),
-                  IconButton(
-                    tooltip: 'Delete',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.delete_outline,
-                        size: 20, color: Hs.red),
-                    onPressed: () => _delete(u),
-                  ),
-                ],
+              itemBuilder: (context, u) => _UserCard(
+                user: u,
+                onEdit: () => _edit(u),
+                onDelete: () => _delete(u),
               ),
-              const SizedBox(height: 6),
-              // Order mirrors web's `.user-card` (user/list.blade.php
-              // renderCards): Name [title], Email, Role, Image [avatar
-              // above], Action [icons above].
-              HsRow('Mobile', u.mobile.isEmpty ? '-' : u.mobile,
-                  bottomDivider: true),
-              HsRow('Email', u.email, bottomDivider: true),
-              HsRow(
-                'Role',
-                u.roleLabel,
-                valueWidget: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      // Web `.badge-admin`/`.badge-user`: solid bg + white text.
-                      color: u.isAdmin ? Hs.red : const Color(0xFF6C757D),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: Text(
-                      u.roleLabel,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
           ),
           if (footerTotal > 0) footerBar(),
         ],
+      ),
+    );
+  }
+}
+
+/// One user: avatar, name + role chip, contact lines, and edit / delete.
+/// The whole card opens the editor; the buttons are the explicit shortcuts.
+class _UserCard extends StatelessWidget {
+  const _UserCard({
+    required this.user,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final UserRow user;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = user;
+    return HsListCard(
+      accent: u.isAdmin ? Hs.secondary : Hs.blue,
+      onTap: onEdit,
+      padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _Avatar(user: u),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(u.name.isEmpty ? '—' : u.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 15.5,
+                            height: 1.2,
+                            fontWeight: FontWeight.w700,
+                            color: Hs.ink)),
+                    const SizedBox(height: 6),
+                    _RoleChip(isAdmin: u.isAdmin, label: u.roleLabel),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _ActionButton(
+                tooltip: 'Edit',
+                icon: Icons.edit_outlined,
+                color: Hs.blue,
+                onPressed: onEdit,
+              ),
+              const SizedBox(width: 6),
+              _ActionButton(
+                tooltip: 'Delete',
+                icon: Icons.delete_outline,
+                color: Hs.red,
+                onPressed: onDelete,
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 12, bottom: 10, right: 4),
+            child: Divider(height: 1, thickness: 1, color: Hs.hairline),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ContactLine(
+                  icon: Icons.phone_outlined,
+                  child: u.mobile.isEmpty
+                      ? const Text('No mobile number',
+                          style: TextStyle(fontSize: 13.5, color: Hs.faint))
+                      : PhoneLink(
+                          u.mobile,
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Hs.ink),
+                        ),
+                ),
+                if (u.email.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _ContactLine(
+                    icon: Icons.mail_outline,
+                    child: Text(u.email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13.5, color: Hs.inkSoft)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Profile photo over an initials disc: the initials show while the photo
+/// loads and stay if it never does (users created on the web may have no
+/// photo file on the server).
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.user});
+  final UserRow user;
+
+  static const _size = 52.0;
+
+  String get _initials {
+    String first(String s) => s.trim().isEmpty ? '' : s.trim()[0].toUpperCase();
+    final i = first(user.firstName) + first(user.lastName);
+    return i.isEmpty ? '?' : i;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Hs.tileAccents[user.id % Hs.tileAccents.length];
+    return Container(
+      width: _size,
+      height: _size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(color: color.withValues(alpha: .25), width: 2),
+      ),
+      child: ClipOval(
+        child: Stack(
+          alignment: Alignment.center,
+          fit: StackFit.expand,
+          children: [
+            Center(
+              child: Text(_initials,
+                  style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
+            ),
+            if (user.image != null)
+              // Cached between scrolls/refreshes instead of re-downloading
+              // every photo each time this list loads.
+              FallbackNetworkImage(
+                urls: [user.image!],
+                fallback: const SizedBox.shrink(),
+                memCacheWidth: 160,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Admin" / "User" pill: a tinted background with matching text, rather than
+/// the web's solid block, so a screen of cards doesn't shout.
+class _RoleChip extends StatelessWidget {
+  const _RoleChip({required this.isAdmin, required this.label});
+  final bool isAdmin;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isAdmin ? Hs.red : Hs.muted;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(7, 3, 9, 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(isAdmin ? Icons.shield_outlined : Icons.person_outline,
+              size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 11.5, fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small icon + value line (phone, email) inside a card.
+class _ContactLine extends StatelessWidget {
+  const _ContactLine({required this.icon, required this.child});
+  final IconData icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: Hs.faint),
+        const SizedBox(width: 10),
+        Expanded(child: Align(alignment: Alignment.centerLeft, child: child)),
+      ],
+    );
+  }
+}
+
+/// A 36px tinted square button for a card's edit / delete.
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.tooltip,
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: color.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(Hs.radiusSm),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Hs.radiusSm),
+          onTap: onPressed,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: Icon(icon, size: 19, color: color),
+          ),
+        ),
       ),
     );
   }

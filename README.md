@@ -29,7 +29,7 @@ Admins grant each non-admin user three kinds of access on the User form:
 
 - **Module Access:** which dashboard modules the user can open. Dashboard tiles and drawer links show only these.
 - **Field Access:** per-module fields (currently Item Stock: supplier name/mobile, contact person, markup, markdown, discount, DP exclusive, MRP, image upload). Unticked fields and their Save buttons are hidden.
-- **Location Access:** the locations whose data the user sees. Location dropdowns (Gate Entry, GRN, All Stock), the Locations list and stock detail rows show only these.
+- **Location Access (per module):** each ticked module has its own list of locations ("<Module> - Locations"), and inside that module the user sees only those; a module with none shows no data. The server ignores the old single global list, so the form saves `access_module_locations[module][]`, and when editing it folds any old global locations into each module's list (like the web form) so saving migrates them. The app's location dropdowns (Gate Entry, GRN, All Stock), the Locations list and stock detail rows are still filtered by a probe that isn't module-aware yet (see Known follow-up work).
 
 Admins always have full access and their grants are never overwritten from the app. The backend enforces module and location access itself (it answers `403` for anything not granted); the app only decides what to show. Because the API has no "my locations" endpoint, the app finds a user's allowed locations once after login by probing each location and treating `403` as not allowed (`lib/features/access/access_provider.dart`). If the backend adds `access.locations` to `GET /dashboard`, that is used instead.
 
@@ -170,6 +170,7 @@ After changing launcher icon sources in `assets/icon/`, regenerate them with:
 - Gate Entry without a From date loads only the last 6 months (`_defaultMonthsBack` in `gate_entry_repository.dart`).
 - `lib/features/users/field_permissions_screen.dart` (old DB-table field permissions editor) is no longer used by the User form.
 - Expand tests to cover authentication, pagination, API parsing, and important write workflows.
+- Location access is per module on the server, but `userAccessProvider` still builds ONE allowed-locations set (the union over all modules), so a Gate Entry/GRN/Stock dropdown can show a location the user only has for another module (the server still answers 403 for the data). Fix: have `GET /dashboard` return `access` (`module_locations`) and filter per module.
 - `userAccessProvider` (`lib/features/access/access_provider.dart`) probes each location individually when the backend doesn't return `access.locations` — several extra requests on every app open for a non-admin user. Goes away once the backend adds that field to `GET /dashboard` (see `BACKEND_REVIEW.md` finding 10/11).
 
 Android Gradle configuration disables Kotlin incremental compilation to avoid cross-drive path issues when the project and dependency cache are on different Windows drives.
