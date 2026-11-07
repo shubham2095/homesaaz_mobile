@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config.dart';
 import '../../core/format.dart';
+import '../../core/item_image.dart';
 import '../../core/paged_response.dart';
 import '../../core/providers.dart';
 import '../access/access_provider.dart';
@@ -51,14 +52,16 @@ class StockItem {
     return n.isNotEmpty;
   }
 
-  /// Built from the item code rather than trusted verbatim from the API —
-  /// same fix as the Item Stock Report screen: the API's own `ImageUrl`
-  /// points at the *web* session-authenticated proxy route
-  /// (`url('/stock/image-proxy/...')` has no `/api` prefix), not this
-  /// app's Bearer-token `/api/stock/image-proxy/...` route, so it 401s
-  /// when this app tries to load it directly.
-  String? get image =>
-      hasImage && code.isNotEmpty ? '${AppConfig.baseUrl}/stock/image-proxy/$code.jpg' : null;
+  /// Where the photo can be loaded from, best first (empty = no photo). The
+  /// API's `ImageUrl` is either the old image server directly, or the *web*
+  /// session-only proxy route for a photo uploaded from the app, which
+  /// [itemImageUrls] re-points at this app's Bearer-token API route.
+  List<String> get imageUrls => !hasImage
+      ? const []
+      : itemImageUrls(
+          code: code,
+          serverUrl: raw['ImageUrl'] ?? raw['ImageName'] ?? raw['ItemImage'] ?? raw['IImage'],
+        );
 
   factory StockItem.fromJson(Map<String, dynamic> j) => StockItem(j);
 }

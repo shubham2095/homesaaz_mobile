@@ -17,6 +17,8 @@ class FallbackNetworkImage extends StatefulWidget {
     this.fit = BoxFit.cover,
     this.memCacheWidth,
     this.memCacheHeight,
+    this.headersFor,
+    this.placeholder,
   });
 
   final List<String> urls;
@@ -24,6 +26,13 @@ class FallbackNetworkImage extends StatefulWidget {
   final BoxFit fit;
   final int? memCacheWidth;
   final int? memCacheHeight;
+
+  /// HTTP headers for one URL — e.g. the Bearer token for this app's own API
+  /// but not for a plain image server on another port.
+  final Map<String, String> Function(String url)? headersFor;
+
+  /// Shown while the current URL loads.
+  final Widget? placeholder;
 
   @override
   State<FallbackNetworkImage> createState() => _FallbackNetworkImageState();
@@ -53,6 +62,8 @@ class _FallbackNetworkImageState extends State<FallbackNetworkImage> {
     return CachedNetworkImage(
       key: ValueKey(widget.urls[current]),
       imageUrl: widget.urls[current],
+      httpHeaders: widget.headersFor?.call(widget.urls[current]),
+      placeholder: widget.placeholder == null ? null : (_, __) => widget.placeholder!,
       fit: widget.fit,
       memCacheWidth: widget.memCacheWidth,
       memCacheHeight: widget.memCacheHeight,

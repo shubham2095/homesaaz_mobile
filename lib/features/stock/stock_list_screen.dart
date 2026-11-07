@@ -1,12 +1,13 @@
 // lib/features/stock/stock_list_screen.dart
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/tokens.dart';
+import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/providers.dart';
+import '../../widgets/fallback_network_image.dart';
 import '../../widgets/hs_app_bar.dart';
 import '../../widgets/hs_drawer.dart';
 import '../../widgets/hs_table.dart';
@@ -116,8 +117,11 @@ class _StockListScreenState extends ConsumerState<StockListScreen>
   List<String> _locationCodes = [];
   String? _token;
 
-  Map<String, String> get _authHeader =>
-      (_token == null || _token!.isEmpty) ? {} : {'Authorization': 'Bearer $_token'};
+  /// The Bearer token goes only to our own API, not the image server.
+  Map<String, String> _headersFor(String url) =>
+      (_token == null || _token!.isEmpty || !url.startsWith(AppConfig.baseUrl))
+          ? const {}
+          : {'Authorization': 'Bearer $_token'};
 
   List<HsTableColumn> get _columns => [
     ..._fixedColumns,
@@ -297,7 +301,7 @@ class _StockListScreenState extends ConsumerState<StockListScreen>
                               onTap: () => context.push('/stock/${it.id}'),
                               leading: Padding(
                                 padding: const EdgeInsets.all(8),
-                                child: it.image == null
+                                child: it.imageUrls.isEmpty
                                     ? const Icon(
                                         Icons.inventory_2_outlined,
                                         size: 22,
@@ -305,25 +309,26 @@ class _StockListScreenState extends ConsumerState<StockListScreen>
                                       )
                                     : ClipRRect(
                                         borderRadius: BorderRadius.circular(6),
-                                        child: CachedNetworkImage(
-                                          imageUrl: it.image!,
-                                          httpHeaders: _authHeader,
+                                        child: SizedBox(
                                           width: 40,
                                           height: 40,
-                                          // Caps the decoded bitmap to
-                                          // thumbnail size instead of
-                                          // decoding the full-resolution
-                                          // photo for a 40x40 display —
-                                          // matters a lot on a long
-                                          // scrolling list of these.
-                                          memCacheWidth: 120,
-                                          memCacheHeight: 120,
-                                          fit: BoxFit.cover,
-                                          errorWidget: (_, __, ___) =>
-                                              const Icon(
-                                                Icons.broken_image_outlined,
-                                                size: 20,
-                                              ),
+                                          child: FallbackNetworkImage(
+                                            urls: it.imageUrls,
+                                            headersFor: _headersFor,
+                                            // Caps the decoded bitmap to
+                                            // thumbnail size instead of
+                                            // decoding the full-resolution
+                                            // photo for a 40x40 display —
+                                            // matters a lot on a long
+                                            // scrolling list of these.
+                                            memCacheWidth: 120,
+                                            memCacheHeight: 120,
+                                            fit: BoxFit.cover,
+                                            fallback: const Icon(
+                                              Icons.broken_image_outlined,
+                                              size: 20,
+                                            ),
+                                          ),
                                         ),
                                       ),
                               ),

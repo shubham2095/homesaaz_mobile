@@ -12,7 +12,9 @@ import '../../app/tokens.dart';
 import '../../core/api_client.dart';
 import '../../core/config.dart';
 import '../../core/format.dart';
+import '../../core/item_image.dart';
 import '../../core/providers.dart';
+import '../../widgets/fallback_network_image.dart';
 import '../../widgets/hs_app_bar.dart';
 import '../../widgets/hs_drawer.dart';
 import '../../widgets/hs_widgets.dart';
@@ -104,60 +106,38 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
     }
   }
 
-  /// Turn whatever the API sends back into a URL the app can actually load.
-  ///
-  /// POST /itemstock/search doesn't reliably populate an `ImageUrl` (or even
-  /// a usable `Image`) field — the web app's own JS has the same gap, since
-  /// it also gates the preview on `stock.ImageUrl`. But the upload flow
-  /// (`uploadImage()`) always saves a searched item's photo under
-  /// `public/items/<itemCode>/`, and `imageProxy($filename)` resolves purely
-  /// from that folder using the `<itemCode>` stem of whatever filename it's
-  /// given — so building the URL directly from the searched item code is
-  /// reliable regardless of what (if anything) the response fields contain.
-  /// Base image URL (no cache-buster).
-  String? get _baseImageUrl {
-    final code = _code?.trim();
-    if (code != null && code.isNotEmpty) {
-      return '${AppConfig.baseUrl}/stock/image-proxy/$code.jpg';
-    }
-    final raw = '${_result?['ImageUrl'] ?? _result?['Image'] ?? ''}'.trim();
-    if (raw.isEmpty) return null;
-    if (raw.startsWith('http')) {
-      final i = raw.indexOf('image-proxy/');
-      if (i != -1) {
-        final file = raw.substring(i + 'image-proxy/'.length).split('?').first;
-        return '${AppConfig.baseUrl}/stock/image-proxy/$file';
-      }
-      return raw.split('?').first;
-    }
-    final file = raw.split('/').last;
-    return '${AppConfig.baseUrl}/stock/image-proxy/$file';
-  }
+  /// Where this item's photo can be loaded from, best first — the URL the
+  /// backend sent (the old image server directly, or our API's image proxy
+  /// for a photo uploaded from the app), see [itemImageUrls]. No cache-buster.
+  List<String> get _baseImageUrls => itemImageUrls(
+        code: _code,
+        serverUrl: _result?['ImageUrl'] ?? _result?['Image'],
+      );
 
-  String? get _imageUrl {
-    final url = _baseImageUrl;
-    if (url == null) return null;
-    return _imgBust == 0
-        ? url
-        : '$url${url.contains('?') ? '&' : '?'}v=$_imgBust';
-  }
+  /// [_baseImageUrls] with the cache-buster once a photo was uploaded/refreshed.
+  List<String> get _imageUrls => [
+        for (final u in _baseImageUrls)
+          _imgBust == 0 ? u : withImageVersion(u, _imgBust),
+      ];
 
   /// Wipe every cached copy of this item's image (base + any busted URLs).
   Future<void> _evictImage() async {
-    final base = _baseImageUrl;
-    if (base == null) return;
     try {
-      await CachedNetworkImage.evictFromCache(base);
-      if (_imgBust != 0) {
-        await CachedNetworkImage.evictFromCache(
-          '$base${base.contains('?') ? '&' : '?'}v=$_imgBust',
-        );
+      for (final base in _baseImageUrls) {
+        await CachedNetworkImage.evictFromCache(base);
+        if (_imgBust != 0) {
+          await CachedNetworkImage.evictFromCache(withImageVersion(base, _imgBust));
+        }
       }
     } catch (_) {}
   }
 
-  Map<String, String> get _authHeader =>
-      (_token == null || _token!.isEmpty) ? {} : {'Authorization': 'Bearer $_token'};
+  /// The Bearer token goes only to our own API — the old image server on
+  /// port 85 is plain files and doesn't need (or get) it.
+  Map<String, String> _headersFor(String url) =>
+      (_token == null || _token!.isEmpty || !url.startsWith(AppConfig.baseUrl))
+          ? const {}
+          : {'Authorization': 'Bearer $_token'};
 
   Future<void> _search({bool refresh = false}) async {
     // On pull-to-refresh use the last searched code, not the (maybe cleared) box.
@@ -258,6 +238,28 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
     }
   }
 
+  /// Re-reads the item and takes over only its image fields, so the preview
+  /// follows the photo just uploaded without touching what is typed in the
+  /// MRP / Discount boxes.
+  Future<void> _reloadImageUrl() async {
+    final code = _code;
+    if (code == null) return;
+    try {
+      final body = await ref
+          .read(apiClientProvider)
+          .postRaw('/itemstock/search', body: {'itemCode': code});
+      final data = (body['data'] as Map).cast<String, dynamic>();
+      if (!mounted) return;
+      setState(() => _result = {
+            ...?_result,
+            'ImageUrl': data['ImageUrl'],
+            'Image': data['Image'],
+          });
+    } catch (_) {
+      // Keep what is on screen; a pull-to-refresh retries.
+    }
+  }
+
   Future<void> _saveImage() async {
     final code = _code;
     final file = _pending;
@@ -275,6 +277,10 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
       await _evictImage();
       imageCache.clear();
       imageCache.clearLiveImages();
+      // The search response on screen still names the OLD photo (the old image
+      // server's URL), so ask the server again where the photo is now.
+      await _reloadImageUrl();
+      if (!mounted) return;
       setState(() {
         _pending = null;
         _imgBust = DateTime.now().millisecondsSinceEpoch;
@@ -773,7 +779,7 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
   }
 
   Widget _imageSection() {
-    final url = _imageUrl;
+    final urls = _imageUrls;
     final hasPending = _pending != null;
 
     return Container(
@@ -805,7 +811,7 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
             alignment: Alignment.center,
             child: hasPending
                 ? Image.file(File(_pending!.path), fit: BoxFit.contain)
-                : url == null
+                : urls.isEmpty
                     ? const Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -816,16 +822,18 @@ class _ItemStockScreenState extends ConsumerState<ItemStockScreen> {
                               style: TextStyle(color: Hs.muted)),
                         ],
                       )
-                    : CachedNetworkImage(
-                        imageUrl: url,
-                        httpHeaders: _authHeader,
+                    : FallbackNetworkImage(
+                        urls: urls,
+                        headersFor: _headersFor,
                         fit: BoxFit.contain,
-                        placeholder: (_, __) => const SizedBox(
-                            width: 26,
-                            height: 26,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2)),
-                        errorWidget: (_, __, ___) => const Column(
+                        placeholder: const Center(
+                          child: SizedBox(
+                              width: 26,
+                              height: 26,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2)),
+                        ),
+                        fallback: const Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.broken_image_outlined,
