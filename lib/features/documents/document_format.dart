@@ -10,6 +10,19 @@ import '../../core/format.dart';
 
 final _amount2 = NumberFormat('#,##0.00', 'en_IN');
 
+/// The list row's unique key (`RowKey`, e.g. a cash memo's CaMoID), or '' when
+/// the document type has none. The Doc No (`DocKey`) is NOT unique — one
+/// location has 7 cash memos numbered 13980 — and the server opens a document
+/// by this key. Matched ignoring case, spaces and underscores so a column
+/// spelled `rowKey` / `Row_Key` still counts.
+String docRowKey(Map<String, dynamic> row) {
+  for (final e in row.entries) {
+    final name = e.key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    if (name == 'rowkey') return '${e.value ?? ''}'.trim();
+  }
+  return '';
+}
+
 /// Friendly labels for known keys; anything else is auto-spaced
 /// ("CamelCase" -> "Camel Case"). Same table as web's `ddFriendlyLabels`.
 const _friendly = <String, String>{

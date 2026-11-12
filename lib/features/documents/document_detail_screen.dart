@@ -41,10 +41,19 @@ class DocumentDetailScreen extends ConsumerStatefulWidget {
     required this.locationId,
     required this.docType,
     required this.docKey,
+    this.docNo = '',
   });
   final int locationId;
   final String docType;
+
+  /// What the server looks the document up by (the list's unique RowKey when
+  /// there is one).
   final String docKey;
+
+  /// The Doc No to show; falls back to [docKey].
+  final String docNo;
+
+  String get _shownNo => docNo.isEmpty ? docKey : docNo;
 
   @override
   ConsumerState<DocumentDetailScreen> createState() =>
@@ -79,6 +88,7 @@ class _DocumentDetailScreenState extends ConsumerState<DocumentDetailScreen> {
       locationId: widget.locationId,
       docType: widget.docType,
       docKey: widget.docKey,
+      docNo: widget._shownNo,
       label: _typeLabel,
     );
     if (mounted) setState(() => _downloading = false);
@@ -249,7 +259,7 @@ class _DocumentDetailScreenState extends ConsumerState<DocumentDetailScreen> {
                             fontWeight: FontWeight.w700,
                             color: Hs.faint,
                             letterSpacing: .3)),
-                    Text(widget.docKey,
+                    Text(widget._shownNo,
                         style: const TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,

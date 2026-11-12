@@ -19,6 +19,7 @@ Future<void> downloadDocumentPdf(
   required String docType,
   required String docKey,
   required String label,
+  String? docNo,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
   void say(String m, {bool hold = false}) => messenger
@@ -36,7 +37,9 @@ Future<void> downloadDocumentPdf(
           key: docKey,
         );
     final dir = await getTemporaryDirectory();
-    final safe = '${label}_$docKey'.replaceAll(RegExp(r'[^\w\-]'), '_');
+    // Named after the Doc No the user sees, not the (possibly numeric-ID) key.
+    final shown = (docNo == null || docNo.isEmpty) ? docKey : docNo;
+    final safe = '${label}_$shown'.replaceAll(RegExp(r'[^\w\-]'), '_');
     final file = File('${dir.path}/$safe.pdf');
     await file.writeAsBytes(bytes, flush: true);
     messenger.hideCurrentSnackBar();

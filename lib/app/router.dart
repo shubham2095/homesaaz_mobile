@@ -124,6 +124,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           locationId: int.tryParse(s.uri.queryParameters['loc'] ?? '') ?? 0,
           docType: s.uri.queryParameters['type'] ?? '',
           docKey: s.uri.queryParameters['key'] ?? '',
+          docNo: s.uri.queryParameters['no'] ?? '',
         ),
       ),
 

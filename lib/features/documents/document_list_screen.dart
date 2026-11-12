@@ -156,11 +156,17 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
     return prettifyDocLabel(key);
   }
 
-  void _openDetail(String docKey) {
+  /// [key] is what the server looks the document up by; [docNo] is only what
+  /// the user sees. They differ for cash memos & co: the Doc No (CMNo) repeats
+  /// year after year (13980 exists 7 times in one location's database), so the
+  /// list also returns a unique `RowKey` and the server takes THAT as the key.
+  /// Sending the Doc No made it open some other year's document.
+  void _openDetail(String key, String docNo) {
     context.push(Uri(path: '/documents/view', queryParameters: {
       'loc': '$_appliedLocationId',
       'type': _appliedDocType!,
-      'key': docKey,
+      'key': key,
+      'no': docNo,
     }).toString());
   }
 
@@ -225,25 +231,30 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
 
   Widget _row(Map<String, dynamic> m) {
     final keys = m.keys.toList();
+    // Doc No as shown, and the key the server wants (the unique RowKey when the
+    // list has one, else the Doc No itself).
     final docKey = '${m['DocKey'] ?? ''}'.trim();
+    final rowKey = docRowKey(m);
+    final apiKey = rowKey.isNotEmpty ? rowKey : docKey;
     return HsTableRow(
       columns: _tableColumns(keys),
       group: _hScroll,
       leadingWidth: 110,
       // Tapping anywhere on the row opens the detail, not just "View". (The
       // Doc No link inside still downloads the PDF, like the web.)
-      onTap: docKey.isEmpty ? null : () => _openDetail(docKey),
+      onTap: apiKey.isEmpty ? null : () => _openDetail(apiKey, docKey),
       leading: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         child: InkWell(
-          onTap: docKey.isEmpty
+          onTap: apiKey.isEmpty
               ? null
               : () => downloadDocumentPdf(
                     context,
                     ref,
                     locationId: _appliedLocationId!,
                     docType: _appliedDocType!,
-                    docKey: docKey,
+                    docKey: apiKey,
+                    docNo: docKey,
                     label: _docTypeLabel(_appliedDocType!),
                   ),
           child: Align(
@@ -268,14 +279,14 @@ class _DocumentListScreenState extends ConsumerState<DocumentListScreen>
                 style: k == 'PartyName'
                     ? const TextStyle(fontWeight: FontWeight.w600, color: Hs.ink)
                     : null),
-        docKey.isEmpty
+        apiKey.isEmpty
             ? const Text('-')
             : Align(
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
                   height: 28,
                   child: OutlinedButton(
-                    onPressed: () => _openDetail(docKey),
+                    onPressed: () => _openDetail(apiKey, docKey),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 28),
                       padding: const EdgeInsets.symmetric(horizontal: 10),
