@@ -20,7 +20,7 @@ class HsDrawer extends ConsumerWidget {
     (label: 'All Stock Details', icon: Icons.inventory_2_outlined, route: '/stock', adminOnly: false, slug: 'all-stock-details'),
     (label: 'Item Stock', icon: Icons.widgets_outlined, route: '/item-stock', adminOnly: false, slug: 'item-stock'),
     (label: 'Upload Gate Entry Bill', icon: Icons.receipt_long_outlined, route: '/upload-gate-entry-bill', adminOnly: false, slug: 'vendor-invoice'),
-    (label: 'Home Stay', icon: Icons.cottage_outlined, route: '/home-stay', adminOnly: false, slug: 'home-stay'),
+    (label: 'ALFOHOMES', icon: Icons.cottage_outlined, route: '/home-stay', adminOnly: false, slug: 'home-stay'),
     (label: 'Gate Entry', icon: Icons.meeting_room_outlined, route: '/gate-entry', adminOnly: false, slug: 'gate-entry'),
     (label: 'GRN', icon: Icons.assignment_turned_in_outlined, route: '/grn', adminOnly: false, slug: 'grn'),
     (label: 'Attendance', icon: Icons.people_alt_outlined, route: '/attendance', adminOnly: false, slug: 'attendance'),

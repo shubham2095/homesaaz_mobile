@@ -48,7 +48,7 @@ const kModules = <ModuleDef>[
   ModuleDef('attendance', 'ATTENDANCE', Icons.people_alt_outlined,
       Color(0xFFB39DF5),
       route: '/attendance', image: 'assets/images/ATTENDANCE.jpg'),
-  ModuleDef('home-stay', 'HOME STAY', Icons.cottage_outlined,
+  ModuleDef('home-stay', 'ALFOHOMES', Icons.cottage_outlined,
       Color(0xFFB39DF5),
       route: '/home-stay'),
   ModuleDef('pearl-stay', 'PEARL STAY', Icons.home_outlined,

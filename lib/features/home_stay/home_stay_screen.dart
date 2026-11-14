@@ -6,7 +6,7 @@ import '../../widgets/hs_app_bar.dart';
 import '../../widgets/hs_drawer.dart';
 import '../../widgets/hs_widgets.dart';
 
-/// Mirrors the web "Home Stay" landing page — a hub for the four
+/// The ALFOHOMES (formerly "Home Stay") landing page — a hub for the four
 /// hostel sub-modules. Each tile gets its own pastel border, same as the
 /// main dashboard's tiles.
 const _items = <({String label, IconData icon, String route, Color color})>[
@@ -43,7 +43,7 @@ class HomeStayScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const HsDrawer(),
-      appBar: const HsAppBar(title: 'Home Stay'),
+      appBar: const HsAppBar(title: 'ALFOHOMES'),
       body: GridView.count(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
         crossAxisCount: 2,

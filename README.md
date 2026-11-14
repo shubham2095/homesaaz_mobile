@@ -1,6 +1,6 @@
 # HomeSaaz Mobile
 
-Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, documents, and home stay records. It connects to an external Laravel API; backend source code is not included here.
+Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, documents, and ALFOHOMES (hostel) records. It connects to an external Laravel API; backend source code is not included here.
 
 ## Features
 
@@ -14,7 +14,7 @@ Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, 
 | GRN | Filtered lists, item details and popup, PDF download |
 | Upload Gate Entry Bill | Create, edit, view, approve, reject, and delete bills |
 | Documents | Live per-location document lists (Location, Document Type and date range required, search), line-item detail, letterhead PDF download |
-| Home Stay | Pending rent, student details, bed occupancy, new admission records |
+| ALFOHOMES (was Home Stay) | Pending rent, student details, bed occupancy, new admission records |
 | Daily Collection | Location-wise cash, credit card and cheque totals with search and grand total |
 | Attendance | Location and status (Present/Absent/Late/All) filters, search, 4 summary cards, paginated employee list |
 | Floor Wise Sales | Required Location + date range filters, 4 summary cards, floor-wise breakdown with a Share bar and grand total |
@@ -166,7 +166,7 @@ After changing launcher icon sources in `assets/icon/`, regenerate them with:
 - Show retryable pagination and stock filter errors.
 - Check widget lifecycle before updating dismissed forms or screens after asynchronous operations.
 - Add a role guard for the users route alongside backend authorization.
-- Home Stay rows are not location-filtered (the backend does not filter them either). Document Download now is: it needs a `locationID`, which the backend's access check covers.
+- ALFOHOMES (Home Stay) rows are not location-filtered (the backend does not filter them either). Document Download now is: it needs a `locationID`, which the backend's access check covers.
 - Gate Entry without a From date loads only the last 6 months (`_defaultMonthsBack` in `gate_entry_repository.dart`).
 - `lib/features/users/field_permissions_screen.dart` (old DB-table field permissions editor) is no longer used by the User form.
 - Expand tests to cover authentication, pagination, API parsing, and important write workflows.

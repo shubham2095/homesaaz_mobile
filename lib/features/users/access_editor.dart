@@ -34,6 +34,11 @@ class AccessEditor extends ConsumerStatefulWidget {
 class _AccessEditorState extends ConsumerState<AccessEditor> {
   AccessSelection get _sel => widget.selection;
 
+  /// The module's name as the app shows it elsewhere (dashboard, drawer), so
+  /// a renamed module reads the same here as on the dashboard. Falls back to
+  /// the server's label for a module the app doesn't know.
+  String _name(AccessModule m) => moduleBySlug(m.slug)?.label ?? m.label;
+
   /// Per-module location cards that are currently open, and the ones whose
   /// initial open/closed state has already been decided.
   final _openLocationCards = <String>{};
@@ -379,7 +384,7 @@ class _AccessEditorState extends ConsumerState<AccessEditor> {
                   children: [
                     _moduleIcon(m.slug, size: 44),
                     const SizedBox(height: 8),
-                    Text(m.label,
+                    Text(_name(m),
                         textAlign: TextAlign.center,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -427,7 +432,7 @@ class _AccessEditorState extends ConsumerState<AccessEditor> {
     final picked = _sel.fields.putIfAbsent(m.slug, () => <String>{});
     return _card(
       iconSlug: m.slug,
-      title: '${m.label} - Field Access',
+      title: '${_name(m)} - Field Access',
       subtitle: 'Unticked fields (and their Save buttons) will be hidden '
           'for this user.',
       selected: m.fields.where((f) => picked.contains(f.key)).length,
@@ -472,8 +477,8 @@ class _AccessEditorState extends ConsumerState<AccessEditor> {
     ];
     return _card(
       iconSlug: m.slug,
-      title: '${m.label} - Locations',
-      subtitle: 'User will see ${m.label} data only for these locations.',
+      title: '${_name(m)} - Locations',
+      subtitle: 'User will see ${_name(m)} data only for these locations.',
       selected: names.length,
       total: locations.length,
       onSelectAll: (v) => _change(() {
@@ -515,7 +520,7 @@ class _AccessEditorState extends ConsumerState<AccessEditor> {
                   Expanded(
                     child: Text(
                       'No location selected — this user will see no '
-                      '${m.label} data.',
+                      '${_name(m)} data.',
                       style: const TextStyle(
                           fontSize: 11.5,
                           height: 1.3,
