@@ -2,16 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../app/tokens.dart';
 import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/paged_response.dart';
 import '../../core/providers.dart';
-import '../../widgets/hs_app_bar.dart';
-import '../../widgets/hs_drawer.dart';
-import '../../widgets/hs_widgets.dart';
-import '../../widgets/paged_list_view.dart';
+import '../../widgets/hs_table.dart';
 import '../home_stay/stay.dart';
+import '../home_stay/stay_table.dart';
 
 final _repoProvider =
     Provider.family<_NewStudentRepo, Stay>((ref, stay) => _NewStudentRepo(ref, stay));
@@ -33,6 +30,20 @@ class _NewStudentRepo {
   }
 }
 
+/// Column order mirrors web `newStudent/list.blade.php`'s `<thead>` (S.No and
+/// Action are added by [StayTableScreen]).
+const _columns = <HsTableColumn>[
+  HsTableColumn('First Name', width: 140),
+  HsTableColumn('Last Name', width: 140),
+  HsTableColumn('Mobile No', width: 120),
+  HsTableColumn('Aadhaar Card', width: 150),
+  HsTableColumn('Location', width: 120),
+  HsTableColumn('Father Name', width: 170),
+];
+
+String _fullName(Map<String, dynamic> m) =>
+    '${m['FirstName'] ?? ''} ${m['LastName'] ?? ''}'.trim();
+
 class NewStudentListScreen extends ConsumerWidget {
   const NewStudentListScreen({super.key, this.stay = Stay.home});
 
@@ -42,68 +53,33 @@ class NewStudentListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(_repoProvider(stay));
-    return Scaffold(
-      drawer: const HsDrawer(),
-      appBar: const HsAppBar(title: 'Student New Admission'),
-      body: PagedListView<Map<String, dynamic>>(
-        searchHint: 'Name, mobile or location…',
-        fetchPage: repo.list,
-        itemBuilder: (context, m) {
-          final name =
-              '${orDash(m['FirstName'])} ${m['LastName'] ?? ''}'.trim();
-          return HsListCard(
-            onTap: () => _showDetail(context, m, name),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name,
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Hs.ink)),
-                const SizedBox(height: 6),
-                HsRow('Mobile No', orDash(m['MobileNo']), bottomDivider: true),
-                HsRow('Aadhaar', orDash(m['Addarcard']), bottomDivider: true),
-                HsRow('Location', orDash(m['Location']), bottomDivider: true),
-                HsRow('Father Name', orDash(m['FatherName'])),
-              ],
-            ),
-          );
-        },
-      ),
+    return StayTableScreen(
+      title: 'Student New Admission',
+      searchHint: 'Name, mobile or location…',
+      emptyMessage: 'No admission data found',
+      columns: _columns,
+      fetchPage: repo.list,
+      cells: (m) => [
+        stayName(m['FirstName']),
+        Text(orDash(m['LastName'])),
+        Text(orDash(m['MobileNo'])),
+        Text(orDash(m['Addarcard'])),
+        Text(orDash(m['Location'])),
+        Text(orDash(m['FatherName'])),
+      ],
+      detailTitle: (m) => _fullName(m).isEmpty ? '-' : _fullName(m),
+      detailRows: (m) => [
+        ('Mobile No', orDash(m['MobileNo'])),
+        ('Aadhaar Card', orDash(m['Addarcard'])),
+        ('Vaccination', orDash(m['Vaccination'])),
+        ('Location', orDash(m['Location'])),
+        ('Father Name', orDash(m['FatherName'])),
+        ('Father Mobile', orDash(m['FatherMobileNo'])),
+        ('Mother Name', orDash(m['MotherName'])),
+        ('Mother Mobile', orDash(m['MotherMobileNo'])),
+        ('Remarks', orDash(m['Remarks'])),
+        ('Transferred', orDash(m['TrfToMain'])),
+      ],
     );
   }
-}
-
-void _showDetail(BuildContext context, Map<String, dynamic> m, String name) {
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    builder: (_) => Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            HsRow('Mobile No', orDash(m['MobileNo'])),
-            HsRow('Aadhaar Card', orDash(m['Addarcard'])),
-            HsRow('Vaccination', orDash(m['Vaccination'])),
-            HsRow('Location', orDash(m['Location'])),
-            HsRow('Father Name', orDash(m['FatherName'])),
-            HsRow('Father Mobile', orDash(m['FatherMobileNo'])),
-            HsRow('Mother Name', orDash(m['MotherName'])),
-            HsRow('Mother Mobile', orDash(m['MotherMobileNo'])),
-            HsRow('Remarks', orDash(m['Remarks'])),
-            HsRow('Transferred', '${m['TrfToMain'] ?? '-'}'),
-          ],
-        ),
-      ),
-    ),
-  );
 }

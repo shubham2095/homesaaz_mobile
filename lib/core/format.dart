@@ -5,12 +5,20 @@ import 'package:intl/intl.dart';
 import 'config.dart';
 
 final _money = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+final _money2 = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
 final _date = DateFormat('dd MMM yyyy');
 
 String money(Object? v) {
   final n = v is num ? v : num.tryParse('${v ?? ''}');
   if (n == null) return '-';
   return _money.format(n);
+}
+
+/// [money] with paise (₹29,000.00) — what the web's rent tables print.
+String money2(Object? v) {
+  final n = v is num ? v : num.tryParse('${v ?? ''}'.trim());
+  if (n == null) return '-';
+  return _money2.format(n);
 }
 
 String prettyDate(Object? v) {

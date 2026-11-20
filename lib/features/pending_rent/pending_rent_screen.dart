@@ -2,16 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../app/tokens.dart';
 import '../../core/config.dart';
 import '../../core/format.dart';
 import '../../core/paged_response.dart';
 import '../../core/providers.dart';
-import '../../widgets/hs_app_bar.dart';
-import '../../widgets/hs_drawer.dart';
-import '../../widgets/hs_widgets.dart';
-import '../../widgets/paged_list_view.dart';
+import '../../widgets/hs_table.dart';
 import '../home_stay/stay.dart';
+import '../home_stay/stay_table.dart';
 
 final _repoProvider =
     Provider.family<_PendingRentRepo, Stay>((ref, stay) => _PendingRentRepo(ref, stay));
@@ -33,6 +30,18 @@ class _PendingRentRepo {
   }
 }
 
+/// Column order mirrors web `pendingRent/list.blade.php`'s `<thead>` (S.No and
+/// Action are added by [StayTableScreen]).
+const _columns = <HsTableColumn>[
+  HsTableColumn('Student Name', width: 180),
+  HsTableColumn('Room No', width: 90),
+  HsTableColumn('Location', width: 120),
+  HsTableColumn('Rent Amount', width: 120, alignEnd: true),
+  HsTableColumn('Rec Amount', width: 120, alignEnd: true),
+  HsTableColumn('Bal Amount', width: 120, alignEnd: true),
+  HsTableColumn('Rent Date', width: 110),
+];
+
 class PendingRentScreen extends ConsumerWidget {
   const PendingRentScreen({super.key, this.stay = Stay.home});
 
@@ -42,69 +51,31 @@ class PendingRentScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(_repoProvider(stay));
-    return Scaffold(
-      drawer: const HsDrawer(),
-      appBar: const HsAppBar(title: 'Pending Rent Details'),
-      body: PagedListView<Map<String, dynamic>>(
-        searchHint: 'Student name, room no or location…',
-        fetchPage: repo.list,
-        itemBuilder: (context, m) => HsListCard(
-          onTap: () => _showDetail(context, m),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(orDash(m['Name']),
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Hs.ink)),
-                  ),
-                  Text(money(m['BalAmount']),
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, color: Hs.red)),
-                ],
-              ),
-              const SizedBox(height: 6),
-              // Field order/content mirrors web's card-row list exactly
-              // (pendingRent/list.blade.php renderCards): Name [title],
-              // Room, Location, Rent, Received, Balance [title trailing].
-              // Web's card does NOT show Rent Date — dropped here too.
-              HsRow('Room No', orDash(m['RoomNo']), bottomDivider: true),
-              HsRow('Location', orDash(m['LocationName']), bottomDivider: true),
-              HsRow('Rent Amount', money(m['RentAmount']), bottomDivider: true),
-              HsRow('Rec Amount', money(m['RecAmount'])),
-            ],
-          ),
-        ),
-      ),
+    return StayTableScreen(
+      title: 'Pending Rent Details',
+      searchHint: 'Student name, room no or location…',
+      emptyMessage: 'No pending rent data found',
+      columns: _columns,
+      fetchPage: repo.list,
+      cells: (m) => [
+        stayName(m['Name']),
+        Text(orDash(m['RoomNo'])),
+        Text(orDash(m['LocationName'])),
+        Text(money2(m['RentAmount'])),
+        Text(money2(m['RecAmount'])),
+        Text(money2(m['BalAmount']),
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text(prettyDate(m['RentDate'])),
+      ],
+      detailTitle: (m) => orDash(m['Name']),
+      detailRows: (m) => [
+        ('Room No', orDash(m['RoomNo'])),
+        ('Location', orDash(m['LocationName'])),
+        ('Rent Amount', money2(m['RentAmount'])),
+        ('Rec Amount', money2(m['RecAmount'])),
+        ('Bal Amount', money2(m['BalAmount'])),
+        ('Rent Date', prettyDate(m['RentDate'])),
+      ],
     );
   }
-}
-
-void _showDetail(BuildContext context, Map<String, dynamic> m) {
-  showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (_) => Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(orDash(m['Name']),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          HsRow('Room No', orDash(m['RoomNo'])),
-          HsRow('Location', orDash(m['LocationName'])),
-          HsRow('Rent Amount', money(m['RentAmount'])),
-          HsRow('Rec Amount', money(m['RecAmount'])),
-          HsRow('Bal Amount', money(m['BalAmount'])),
-          HsRow('Rent Date', prettyDate(m['RentDate'])),
-        ],
-      ),
-    ),
-  );
 }
