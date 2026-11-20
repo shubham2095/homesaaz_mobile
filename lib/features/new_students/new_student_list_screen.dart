@@ -11,16 +11,19 @@ import '../../widgets/hs_app_bar.dart';
 import '../../widgets/hs_drawer.dart';
 import '../../widgets/hs_widgets.dart';
 import '../../widgets/paged_list_view.dart';
+import '../home_stay/stay.dart';
 
-final _repoProvider = Provider((ref) => _NewStudentRepo(ref));
+final _repoProvider =
+    Provider.family<_NewStudentRepo, Stay>((ref, stay) => _NewStudentRepo(ref, stay));
 
 class _NewStudentRepo {
-  _NewStudentRepo(this.ref);
+  _NewStudentRepo(this.ref, this.stay);
   final Ref ref;
+  final Stay stay;
 
   Future<PagedResponse<Map<String, dynamic>>> list(int page, String search) async {
     final body = await ref.read(apiClientProvider).listRaw(
-          '/homestay/new-student/datatable',
+          '${stay.apiBase}/new-student/datatable',
           page: page,
           perPage: AppConfig.pageSize,
           search: search,
@@ -31,11 +34,14 @@ class _NewStudentRepo {
 }
 
 class NewStudentListScreen extends ConsumerWidget {
-  const NewStudentListScreen({super.key});
+  const NewStudentListScreen({super.key, this.stay = Stay.home});
+
+  /// Which hostel's data: ALFOHOMES (default) or Pearl Stay.
+  final Stay stay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(_repoProvider);
+    final repo = ref.watch(_repoProvider(stay));
     return Scaffold(
       drawer: const HsDrawer(),
       appBar: const HsAppBar(title: 'Student New Admission'),

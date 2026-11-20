@@ -17,6 +17,7 @@ import '../features/gate_entry/gate_entry_screen.dart';
 import '../features/grn/grn_items_screen.dart';
 import '../features/grn/grn_list_screen.dart';
 import '../features/home_stay/home_stay_screen.dart';
+import '../features/home_stay/stay.dart';
 import '../features/item_stock/item_stock_screen.dart';
 import '../features/locations/location_list_screen.dart';
 import '../features/new_students/new_student_list_screen.dart';
@@ -83,11 +84,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      GoRoute(path: '/home-stay', builder: (_, __) => const HomeStayScreen()),
+      GoRoute(path: '/home-stay', builder: (_, __) => const StayHubScreen()),
       GoRoute(path: '/pending-rent', builder: (_, __) => const PendingRentScreen()),
       GoRoute(path: '/students', builder: (_, __) => const StudentListScreen()),
       GoRoute(path: '/bed-occupancy', builder: (_, __) => const BedOccupancyScreen()),
       GoRoute(path: '/new-students', builder: (_, __) => const NewStudentListScreen()),
+
+      // Pearl Stay: the same four screens over the 'pearlstay' database.
+      GoRoute(
+          path: '/pearl-stay',
+          builder: (_, __) => const StayHubScreen(stay: Stay.pearl)),
+      GoRoute(
+          path: '/pearl-stay/pending-rent',
+          builder: (_, __) => const PendingRentScreen(stay: Stay.pearl)),
+      GoRoute(
+          path: '/pearl-stay/students',
+          builder: (_, __) => const StudentListScreen(stay: Stay.pearl)),
+      GoRoute(
+          path: '/pearl-stay/bed-occupancy',
+          builder: (_, __) => const BedOccupancyScreen(stay: Stay.pearl)),
+      GoRoute(
+          path: '/pearl-stay/new-students',
+          builder: (_, __) => const NewStudentListScreen(stay: Stay.pearl)),
 
       GoRoute(path: '/gate-entry', builder: (_, __) => const GateEntryScreen()),
       GoRoute(

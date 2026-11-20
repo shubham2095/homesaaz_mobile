@@ -15,13 +15,14 @@ Flutter Android app for HomeSaaz staff to manage stock, gate entry bills, GRNs, 
 | Upload Gate Entry Bill | Create, edit, view, approve, reject, and delete bills |
 | Documents | Live per-location document lists (Location, Document Type and date range required, search), line-item detail, letterhead PDF download |
 | ALFOHOMES (was Home Stay) | Pending rent, student details, bed occupancy, new admission records |
+| Pearl Stay | Same four hostel screens as ALFOHOMES, on the Pearl database |
 | Daily Collection | Location-wise cash, credit card and cheque totals with search and grand total |
 | Attendance | Location and status (Present/Absent/Late/All) filters, search, 4 summary cards, paginated employee list |
 | Floor Wise Sales | Required Location + date range filters, 4 summary cards, floor-wise breakdown with a Share bar and grand total |
 | Locations | List, create, edit, and delete locations |
 | Users | User management (mobile number is the login, unique per user) with profile photo and access control (modules, per-module fields, locations); navigation is shown to admins |
 
-Pearl Stay is a dashboard placeholder showing **Coming soon** — unlike the others, it has no backend endpoint yet. Only the Android platform project is included. The app uses a light theme.
+Pearl Stay has the same four screens as ALFOHOMES (Pending Rent, Student Details, Bed Occupancy, New Student) over the separate `pearlstay` database (`/api/pearlstay/...`, same response shape); both use the same screens, selected by `Stay` in `lib/features/home_stay/stay.dart`. Pearl has no Location column for students, so that cell shows `-`. Only the Android platform project is included. The app uses a light theme.
 
 ### User access
 

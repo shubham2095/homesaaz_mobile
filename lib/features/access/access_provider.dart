@@ -53,7 +53,7 @@ const kModules = <ModuleDef>[
       route: '/home-stay'),
   ModuleDef('pearl-stay', 'PEARL STAY', Icons.home_outlined,
       Color(0xFF7FC8A9),
-      image: 'assets/images/PEARL STAY.JPG'),
+      route: '/pearl-stay', image: 'assets/images/PEARL STAY.JPG'),
   ModuleDef('document-download', 'DOCUMENT DOWNLOAD',
       Icons.file_download_outlined, Color(0xFFF08A8A),
       route: '/documents', image: 'assets/images/DOWNLOAD DOCUMENT.jpg'),
